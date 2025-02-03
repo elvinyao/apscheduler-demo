@@ -15,7 +15,7 @@ scheduler = AsyncIOScheduler(jobstores=jobstores,timezone='Asia/Tokyo')
 def scheduled_job_1():
     print("scheduled_job_1!")
 
-@scheduler.scheduled_job('date', run_date='2025-02-02 22:34:00')
+@scheduler.scheduled_job('date', run_date='2025-02-03 22:34:00')
 def scheduled_job_2():
     print("scheduled_job_2!")
 
@@ -33,4 +33,4 @@ async def shutdown_event():
 
 @app.get("/")
 async def read_root():
-    return {"message": "Hello World"}
+    return {"message": "Hello World"+str(scheduler.get_jobs())}
