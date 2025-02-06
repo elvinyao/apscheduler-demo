@@ -1,63 +1,62 @@
 import logging
 import sys
+import time
 from fastapi import FastAPI
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
 import uvicorn
-from core.bot_task_scheduler import BotTaskScheduler
+from core.bot_task_scheduler import JobSchedulerManager
 from tasks.task_reader import TaskReader
 
 logger = logging.getLogger(__name__)
+# 示例任务函数
+def example_task(job_name):
+    """示例任务函数，用于演示定时执行."""
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    print(f"Job '{job_name}' executed at {current_time} in thread: {threading.current_thread().name}")
+    time.sleep(2) # 模拟任务执行时间
+
+if __name__ == '__main__':
+    import threading
+
+    job_manager = JobSchedulerManager()
+# (self, job_id, task_function, trigger_interval, trigger_args=None, job_kwargs=None)
+    # 创建并添加多个定时 job
+    job_manager.create_periodic_job(
+        job_id='job_1',
+        task_function=example_task,
+        trigger_interval=5, # 每 5 秒执行一次
+        job_kwargs={'job_name': 'Job 1'}
+    )
+
+    job_manager.create_periodic_job(
+        job_id='job_2',
+        task_function=example_task,
+        trigger_interval=10, # 每 10 秒执行一次
+        job_kwargs={'job_name': 'Job 2'}
+    )
+
+    job_manager.create_periodic_job(
+        job_id='job_3',
+        task_function=example_task,
+        trigger_interval=3, # 每 3 秒执行一次
+        trigger_args={'seconds': 3}, # 显式指定使用 seconds，尽管是默认的
+        job_kwargs={'job_name': 'Job 3 - 短间隔'}
+    )
+
+    # 从内存中获取 job 信息
+    job_1_info = job_manager.get_job_from_memory('job_1')
+    if job_1_info:
+        print("\nJob 'job_1' 的信息从内存中读取:")
+        print(f"  Job ID: {job_1_info['job_id']}")
+        print(f"  任务函数: {job_1_info['task_function'].__name__}")
+        print(f"  触发间隔: {job_1_info['trigger_interval']} 秒")
 
 
-# jobstores={
-#     'default': MemoryJobStore()
-# }
+    # 执行多线程 jobs (实际上是展示 scheduler 状态和内存 jobs 信息)
+    print("\n--- 执行 execute_jobs_multithreaded 方法 ---")
+    job_manager.execute_jobs_multithreaded()
 
-# scheduler = AsyncIOScheduler(jobstores=jobstores,timezone='Asia/Tokyo')
-
-# @scheduler.scheduled_job('interval', seconds=10)
-# def scheduled_job_1():
-#     print("scheduled_job_1!")
-
-# @scheduler.scheduled_job('date', run_date='2025-02-03 22:34:00')
-# def scheduled_job_2():
-#     print("scheduled_job_2!")
-
-# @scheduler.scheduled_job('cron', day_of_week='mon-sun', hour=22, minute=35)
-# def scheduled_job_3():
-#     print("scheduled_job_3!")
-
-
-def main():
-    """
-    Main function to parse arguments, create the app, and run with uvicorn.
-    """
-    # Create a FastAPI app instance
-    app = FastAPI()
-
-    scheduler = BotTaskScheduler().create_scheduler(task_reader=TaskReader)
-
-    @app.on_event("startup")
-    async def startup_event():
-        scheduler.start()
-
-    @app.on_event("shutdown")
-    async def shutdown_event():
-        scheduler.shutdown()
-
-    @app.get("/")
-    async def read_root():
-        return {"message": "Hello World"+str(scheduler.get_jobs())}
-    
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit(0)
-    except Exception as e:
-        logger.exception("An unexpected error occurred in main: %s", e)
-        sys.exit(1)
+    print("\n程序将继续运行，定时 jobs 将在后台自动执行...")
+    time.sleep(30) # 让程序运行一段时间，观察定时任务的执行情况
+    print("程序运行结束.")

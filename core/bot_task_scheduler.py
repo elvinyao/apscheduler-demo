@@ -1,164 +1,112 @@
-# -*- coding: utf-8 -*-
-
-"""
-Create and configure a BackgroundScheduler with DB-based tasks.
-
-1) read_tasks_job: every 'reading_interval' minutes => read tasks from Confluence, store in DB
-2) check_and_run_job: every 1 min => fetch due tasks from DB, run in ThreadPool
-"""
-
-import logging
-import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from concurrent.futures import ThreadPoolExecutor
+from apscheduler.jobstores.memory import MemoryJobStore
+from apscheduler.executors.pool import ThreadPoolExecutor
+import time
 
-from core.db import add_or_update_tasks
-# from tasks.task_executor import TaskExecutor
-# from tasks.task_processor import TaskProcessor
-from tasks.task_reader import TaskReader
-
-# from core.env_store import ENVIRONMENTS_SERVICES
-
-# from tasks.task_reader import TaskReader
-# from tasks.task_processor import TaskProcessor
-# from tasks.task_executor import TaskExecutor
-
-# DB operations
-# from core.db import add_or_update_tasks, fetch_due_tasks, mark_task_done
-
-logger = logging.getLogger(__name__)
-
-
-class BotTaskScheduler():
-    """
-    BotTaskScheduler defines the interface for task schedulers,
-    managing task queues and multi-threaded task execution.
-    """
-
-    max_threads_count = 10
-    read_tasks_job_interval = 2
-
-    def __init__(self, max_threads_count: int = max_threads_count, read_tasks_job_interval: int = read_tasks_job_interval):
+class JobSchedulerManager:
+    def __init__(self):
         """
-        Init BotTaskScheduler with max_threads and interval.
-        :param max_threads_count: Maximum number of threads to use for task execution.
-        :param read_tasks_job_interval: Interval in seconds for the read_tasks_job.        
+        初始化 JobSchedulerManager 类。
+        配置 scheduler，包括 job store 和 executor。
         """
-        self.max_threads_count = max_threads_count
-        self.read_tasks_job_interval = read_tasks_job_interval
-        self.scheduler = BackgroundScheduler()
-        self.thread_pool = ThreadPoolExecutor(
-            max_workers=self.max_threads_count)
+        self.scheduler = self._create_scheduler()
+        self.jobs_in_memory = {}  # 用于存储job信息到内存中，key为job_id, value为job配置信息
 
-    def create_scheduler(self,
-                         task_reader: TaskReader,
-                         # task_processor: TaskProcessor,
-                         # task_executor: TaskExecutor
-                         ) -> BackgroundScheduler:
+    def _create_scheduler(self):
         """
-        Create and configure a BackgroundScheduler with TaskReader to read tasks from source.Then use TaskProcessor
-        to process tasks and TaskExecutor to execute tasks.
-
-        TaskReader reads tasks from source (e.g. Confluence) and stores them in the database.
-        TaskProcessor processes tasks and stores the results in the database.
-        TaskExecutor executes tasks and sends notifications.
-
+        创建并配置 APScheduler 的后台调度器。
+        配置 jobstore 为内存存储 MemoryJobStore。
+        配置 executor 为线程池 ThreadPoolExecutor，用于多线程执行 job。
         """
-        global thread_pool_executor
-
-        scheduler = BackgroundScheduler()
-
-        # Job execute first: read tasks using TaskReader
-        scheduler.add_job(
-            func=self.read_tasks_job,
-
-            args=[task_reader],
-            trigger="interval",
-            minutes=self.read_tasks_job_interval
-
-        )
-
-        # Job 2: check tasks in DB
-        # scheduler.add_job(
-        #     check_and_run_job,
-        #     "interval",
-        #     minutes=1,
-        #     args=[task_processor, task_executor]
-        # )
-
+        jobstores = {
+            'default': MemoryJobStore()  # 使用内存作为 job 存储
+        }
+        executors = {
+            'default': ThreadPoolExecutor(20)  # 使用线程池执行器，设置最大线程数为 20
+        }
+        scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors)
+        scheduler.start() # 启动scheduler
         return scheduler
 
-    def read_tasks_job(task_reader: TaskReader):
+    def create_periodic_job(self, job_id, task_function, trigger_interval, trigger_args=None, job_kwargs=None):
         """
-        Periodic job that reads tasks from Confluence
-        and stores (or updates) them in the DB.
+        创建并添加一个定时 job 到 scheduler，并将 job 信息存储到内存。
+
+        Args:
+            job_id (str): Job 的唯一标识符。
+            task_function (callable): 要定时执行的任务函数。
+            trigger_interval (int): 触发间隔，单位为秒。
+            trigger_args (dict, optional): 触发器的参数，例如 seconds, minutes, hours 等，用于定义间隔。 默认为 None，将使用 seconds 作为默认间隔单位。
+            job_kwargs (dict, optional): 传递给 job 函数的其他关键字参数。默认为 None。
+
+        Returns:
+            str: 添加到 scheduler 的 job 的 ID。
         """
-        logger.info("Running read_tasks_job...")
-        page_i = 1
+        if trigger_args is None:
+            trigger_args = {'seconds': trigger_interval} # 默认使用秒作为间隔
 
-        # 1) read from Confluence
-        new_tasks = task_reader.read_tasks_from_confluence(page_i)
-        if not new_tasks:
-            logger.info("No tasks read from Confluence this time.")
-            return
+        if job_kwargs is None:
+            job_kwargs = {}
 
-        # 2) add or update them in the DB
-        add_or_update_tasks(new_tasks)
+        try:
+            added_job = self.scheduler.add_job(
+                task_function,
+                'interval',
+                id=job_id,
+                args=trigger_args,
+                kwargs=job_kwargs
+            )
+            self.jobs_in_memory[job_id] = { # 将job信息存储到内存
+                'job_id': job_id,
+                'task_function': task_function,
+                'trigger_interval': trigger_interval,
+                'trigger_args': trigger_args,
+                'job_kwargs': job_kwargs,
+                'next_run_time': added_job.next_run_time # 记录下次运行时间
+            }
+            return added_job.id
+        except Exception as e:
+            print(f"添加 job 失败，job_id: {job_id}, 错误信息: {e}")
+            return None
 
-        logger.info(
-            "Successfully added/updated %d tasks in the DB.", len(new_tasks))
+    def get_job_from_memory(self, job_id):
+        """
+        从内存中读取 job 的配置信息。
 
-    # def check_and_run_job(task_processor: TaskProcessor, task_executor: TaskExecutor):
-    #     """
-    #     Periodic job that checks the DB for tasks whose schedule_time == now.
-    #     Then processes them with a thread pool, updates their status in DB.
-    #     """
-    #     now_str = datetime.datetime.now().strftime("%H:%M")
-    #     logger.info("check_and_run_job: Searching tasks due at %s", now_str)
+        Args:
+            job_id (str): 要获取的 job 的 ID。
 
-    #     due_tasks = fetch_due_tasks(now_str)
-    #     if not due_tasks:
-    #         logger.info("No tasks due at this time.")
-    #         return
+        Returns:
+            dict or None: job 的配置信息字典，如果 job_id 不存在则返回 None。
+        """
+        return self.jobs_in_memory.get(job_id)
 
-    #     logger.info(
-    #         "%d task(s) are due; scheduling them to run in threads...", len(due_tasks))
-    #     for db_task in due_tasks:
-    #         # submit each to thread pool
-    #         thread_pool_executor.submit(
-    #             run_task_flow, db_task, task_processor, task_executor)
+    def execute_jobs_multithreaded(self):
+        """
+        此方法主要用于展示 scheduler 已经启动，并且 jobs 会被 scheduler 自动读取并多线程执行。
+        实际上，scheduler 在创建时通过 ThreadPoolExecutor 已经配置为多线程执行。
+        本方法可以用来查看当前内存中存储的 jobs 信息，以及 scheduler 的运行状态。
+        """
+        print("Scheduler 已经启动，并配置为多线程执行 jobs。")
+        print("当前内存中存储的 jobs 信息:")
+        for job_info in self.jobs_in_memory.values():
+            print(f"  Job ID: {job_info['job_id']}")
+            print(f"    任务函数: {job_info['task_function'].__name__}") # 打印函数名
+            print(f"    触发间隔: {job_info['trigger_interval']} 秒")
+            print(f"    下次运行时间: {job_info['next_run_time']}")
+            print("-" * 30)
 
-    # def run_task_flow(db_task, task_processor: TaskProcessor, task_executor: TaskExecutor):
-    #     """
-    #     Orchestrates the entire flow for a single due task:
-    #     1) parse payload from DB
-    #     2) call task_processor.process_task
-    #     3) call task_executor.execute_task_result
-    #     4) mark the task as done or failed in DB
-    #     """
-    #     import json
-    #     try:
-    #         payload = json.loads(db_task.payload)
-    #         env_name = payload.get("env", "A")  # default to A if not specified
-    #         task_id = payload.get("task_id", f"db_id_{db_task.id}")
+        print("\nScheduler 运行状态:")
+        if self.scheduler.running:
+            print("  Scheduler 正在运行")
+        else:
+            print("  Scheduler 未运行")
 
-    #         # Retrieve the correct environment's services
-    #         if env_name not in ENVIRONMENTS_SERVICES:
-    #             raise ValueError(
-    #                 f"Environment {env_name} is not loaded or invalid.")
+        running_jobs = self.scheduler.get_jobs() # 获取当前 scheduler 中正在运行的 jobs
+        if running_jobs:
+            print("\n当前 Scheduler 中运行的 jobs:")
+            for job in running_jobs:
+                print(f"  Job ID: {job.id}, 任务函数: {job.func.__name__}, 下次运行时间: {job.next_run_time}") # 打印 job 的信息
+        else:
+            print("\n当前 Scheduler 中没有运行的 jobs。")
 
-    #         env_services = ENVIRONMENTS_SERVICES[env_name]
-    #         task_processor = env_services["task_processor"]
-    #         task_executor = env_services["task_executor"]
-
-    #         logger.info("Running flow for task_id=%s in env=%s",
-    #                     task_id, env_name)
-
-    #         result = task_processor.process_task(payload)
-    #         task_executor.execute_task_result(result)
-
-    #         mark_task_done(task_id, "done")
-    #     except Exception as e:
-    #         logger.exception(
-    #             "Error running task flow for db_task_id=%d: %s", db_task.id, e)
-    #         mark_task_done(db_task.task_id, "failed")
