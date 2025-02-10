@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 
 # For demo, use an in-memory SQLite database.
 # Replace with your real database connection string in production.
-DATABASE_URL = "sqlite+pysqlite:///:memory:"
+DATABASE_URL = "sqlite:///tasks.db"
 
 # Create the engine
 engine = create_engine(DATABASE_URL, echo=False)

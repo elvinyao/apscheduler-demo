@@ -53,11 +53,14 @@ class TaskRepository:
                 scheduled_task = Task(
                     name="Scheduled DB Cleanup",
                     task_type="scheduled",
-                    cron_expr="* * * * *"  # runs every minute for demo
+                    cron_expr="* * * * *",  # runs every minute for demo
+                    status="PENDING"
                 )
                 immediate_task = Task(
                     name="One-off Job",
-                    task_type="immediate"
+                    task_type="immediate",
+                    status="PENDING",
+                    cron_expr=None
                 )
                 session.add_all([scheduled_task, immediate_task])
                 session.commit()

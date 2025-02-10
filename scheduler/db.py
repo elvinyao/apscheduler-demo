@@ -54,7 +54,7 @@ def get_db_url() -> str:
     Return the database URL, here we use local SQLite by default.
     Could also parse from environment or config if needed.
     """
-    return "sqlite+pysqlite:///:memory:"
+    return "sqlite:///tasks.db"
 
 
 engine = create_engine(get_db_url(), connect_args={"check_same_thread": False})
