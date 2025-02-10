@@ -20,7 +20,7 @@ class TaskExecutor:
         """
         print(f"[{datetime.now()}] Running read_data()...")
         time.sleep(2)  # Simulate I/O or network call
-        print("Data read from external source and stored in the DB.")
+        print("Sample Data read from external source and stored in the DB.")
 
     def execute_task(self, task_id):
         """

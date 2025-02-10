@@ -7,6 +7,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 
+from .fetch_service import ExternalTaskFetcher
+
 class SchedulerService:
     """
     Orchestrates APScheduler to schedule and run tasks.
@@ -15,6 +17,7 @@ class SchedulerService:
     def __init__(self, task_repository, task_executor):
         self.task_repository = task_repository
         self.task_executor = task_executor
+        self.fetcher = ExternalTaskFetcher(task_repository)
 
         self.scheduler = BackgroundScheduler(
             executors={
@@ -42,9 +45,22 @@ class SchedulerService:
         # 2) Add a recurring job for read_data() every 5 minutes
         self.scheduler.add_job(
             func=self.task_executor.read_data,
-            trigger=CronTrigger.from_crontab('*/5 * * * *'),
+            trigger=CronTrigger.from_crontab('* * * * *'),
             id='read_data_cron'
         )
+
+        # 额外：每小时一次从Confluence拉取最新任务
+        self.scheduler.add_job(
+            func=self.fetcher.fetch_from_confluence,
+            trigger=CronTrigger.from_crontab('* * * * *'),  # 每整点
+            id='fetch_confluence_job'
+        )
+
+        # self.scheduler.add_job(
+        #     func=self.fetcher.fetch_from_rest_api,
+        #     trigger=CronTrigger.from_crontab('* * * * *'),  # 每整点
+        #     id='fetch_confluence_job'
+        # )
 
         self.scheduler.start()
 
