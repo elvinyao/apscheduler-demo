@@ -39,21 +39,16 @@ class ExternalTaskFetcher:
     
     def _save_tasks(self, tasks_data: list[dict]):
         """
-        负责把外部数据转换为Task对象并插入数据库。
-        逻辑可复杂可简单，可以去重、合并等。
+        负责把外部数据转换为Task对象并插入到内存Repository中
+        (或其他自定义的存储).
         """
-        # 这里简单演示一下
-        session = self.task_repository.session_factory()
-        try:
-            from .models import Task
-            for item in tasks_data:
-                task = Task(
-                    name=item["name"],
-                    task_type=item["task_type"],
-                    cron_expr=item.get("cron_expr"),
-                    status="PENDING"
-                )
-                session.add(task)
-            session.commit()
-        finally:
-            session.close()
+        for item in tasks_data:
+            task_data = {
+                "name": item["name"],
+                "task_type": item["task_type"],
+                "cron_expr": item.get("cron_expr"),
+                "status": "PENDING"
+            }
+            # 直接调用 in-memory repository 的 add_task
+            self.task_repository.add_task(task_data)
+

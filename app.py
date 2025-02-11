@@ -1,7 +1,13 @@
+# app.py
+
 import sys
 from fastapi import FastAPI
 from typing import List
 import uvicorn
+import logging
+
+# 新增导入
+from scheduler.config import load_config, setup_logging
 
 from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
@@ -9,26 +15,49 @@ from scheduler.service import SchedulerService
 from scheduler.models import TaskOut
 
 def create_app() -> FastAPI:
+    # 1) 加载全局配置
+    config = load_config()  # 默认从config.yaml
+    # 2) 设置日志
+    setup_logging(config.get("log", {}))
+
     app = FastAPI()
 
-    # Create a single instance of TaskRepository to maintain state
-    task_repo = TaskRepository()
+    # 3) 从配置里获取scheduler相关选项
+    sched_conf = config.get("scheduler", {})
+    poll_interval = sched_conf.get("poll_interval", 30)
+    concurrency = sched_conf.get("concurrency", 5)
+    coalesce = sched_conf.get("coalesce", False)
+    max_instances = sched_conf.get("max_instances", 5)
+
+    logging.info("Scheduler config loaded: %s", sched_conf)
+
+    # 4) 初始化仓库/执行器/服务
+    task_repo = TaskRepository()  # 仍然使用In-memory仓库
     task_executor = TaskExecutor(task_repo)
-    scheduler_service = SchedulerService(task_repo, task_executor)
+    scheduler_service = SchedulerService(
+        task_repository=task_repo,
+        task_executor=task_executor,
+        poll_interval=poll_interval,
+        concurrency=concurrency,
+        coalesce=coalesce,
+        max_instances=max_instances
+    )
 
     @app.on_event("startup")
     async def on_startup():
         task_repo.seed_demo_data()  # optional
+        logging.info("Seeding demo data and starting scheduler.")
         scheduler_service.start()
 
     @app.on_event("shutdown")
     async def on_shutdown():
+        logging.info("Shutting down scheduler.")
         scheduler_service.shutdown()
 
     @app.get("/tasks", response_model=List[TaskOut])
     def list_tasks():
         return task_repo.get_all_tasks()
-        
+
     return app
 
 def main():

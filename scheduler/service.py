@@ -1,8 +1,6 @@
-"""
-service.py
-Manages APScheduler configuration and scheduling logic.
-"""
+# scheduler/service.py
 
+import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
@@ -12,66 +10,67 @@ from .fetch_service import ExternalTaskFetcher
 class SchedulerService:
     """
     Orchestrates APScheduler to schedule and run tasks.
-    Periodically polls the database for new tasks.
+    Periodically polls the repository for new tasks.
     """
-    def __init__(self, task_repository, task_executor):
+    def __init__(self, 
+                 task_repository, 
+                 task_executor,
+                 poll_interval=30,
+                 concurrency=5,
+                 coalesce=False,
+                 max_instances=5):
         self.task_repository = task_repository
         self.task_executor = task_executor
         self.fetcher = ExternalTaskFetcher(task_repository)
 
+        self.poll_interval = poll_interval
+
+        executors = {
+            'default': ThreadPoolExecutor(max_workers=concurrency),
+        }
+        job_defaults = {
+            'coalesce': coalesce,
+            'max_instances': max_instances,
+        }
+
         self.scheduler = BackgroundScheduler(
-            executors={
-                'default': ThreadPoolExecutor(max_workers=5),
-            },
-            job_defaults={
-                'coalesce': False,
-                'max_instances': 5,
-            }
+            executors=executors,
+            job_defaults=job_defaults
         )
 
     def start(self):
-        """
-        Start the scheduler and add initial jobs.
-        """
-        # 1) Poll DB for new tasks every 30 seconds
+        logging.info("Starting APScheduler with poll_interval=%s", self.poll_interval)
+        # 1) Poll DB for new tasks every self.poll_interval
         self.scheduler.add_job(
             func=self.poll_db_for_new_tasks,
             trigger='interval',
-            seconds=30,
+            seconds=self.poll_interval,
             id='poll_db_job',
             replace_existing=True
         )
 
-        # 2) Add a recurring job for read_data() every 5 minutes
+        # 2) read_data job (every minute, for demo)
         self.scheduler.add_job(
             func=self.task_executor.read_data,
             trigger=CronTrigger.from_crontab('* * * * *'),
             id='read_data_cron'
         )
 
-        # 额外：每小时一次从Confluence拉取最新任务
+        # 3) fetch_from_confluence job (every minute, for demo)
         self.scheduler.add_job(
             func=self.fetcher.fetch_from_confluence,
-            trigger=CronTrigger.from_crontab('* * * * *'),  # 每整点
+            trigger=CronTrigger.from_crontab('* * * * *'),
             id='fetch_confluence_job'
         )
 
-        # self.scheduler.add_job(
-        #     func=self.fetcher.fetch_from_rest_api,
-        #     trigger=CronTrigger.from_crontab('* * * * *'),  # 每整点
-        #     id='fetch_confluence_job'
-        # )
-
         self.scheduler.start()
+        logging.info("Scheduler started.")
 
     def poll_db_for_new_tasks(self):
-        """
-        Check the DB for PENDING tasks.
-         - If scheduled + cron_expr -> schedule or update cron job
-         - If immediate -> schedule once
-        """
+        logging.debug("Polling DB for new tasks.")
         pending_tasks = self.task_repository.get_pending_tasks()
         for t in pending_tasks:
+            logging.info("Found pending task: %s", t)
             if t.task_type == 'scheduled' and t.cron_expr:
                 self.add_scheduled_job(t.id, t.cron_expr)
                 self.task_repository.update_task_status(t.id, 'SCHEDULED')
@@ -80,9 +79,6 @@ class SchedulerService:
                 self.task_repository.update_task_status(t.id, 'QUEUED')
 
     def add_scheduled_job(self, task_id, cron_expr):
-        """
-        Create or replace a cron-based job for the given task_id.
-        """
         job_id = f"task_{task_id}"
         existing_job = self.scheduler.get_job(job_id)
         if existing_job:
@@ -96,12 +92,9 @@ class SchedulerService:
             id=job_id,
             replace_existing=True
         )
-        print(f"Scheduled recurring job for task_id={task_id}, cron='{cron_expr}'.")
+        logging.info("Scheduled recurring job for task_id=%s, cron=%s", task_id, cron_expr)
 
     def add_immediate_job(self, task_id):
-        """
-        Schedule a one-time job to run as soon as possible.
-        """
         job_id = f"task_{task_id}_immediate"
         existing_job = self.scheduler.get_job(job_id)
         if existing_job:
@@ -113,11 +106,8 @@ class SchedulerService:
             args=[task_id],
             id=job_id
         )
-        print(f"Scheduled immediate job for task_id={task_id}.")
+        logging.info("Scheduled immediate job for task_id=%s", task_id)
 
     def shutdown(self):
-        """
-        Shuts down the scheduler (e.g., on application exit).
-        """
-        print("Shutting down scheduler...")
+        logging.info("Shutting down APScheduler...")
         self.scheduler.shutdown()
