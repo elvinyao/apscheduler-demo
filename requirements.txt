@@ -4,3 +4,4 @@ uvicorn=0.34.0
 atlassian-python-api=3.41.19
 SQLAlchemy=2.0.37
 PyYAML=6.0.2
+urllib3==1.26.6

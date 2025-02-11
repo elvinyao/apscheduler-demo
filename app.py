@@ -7,6 +7,7 @@ import uvicorn
 import logging
 
 # 新增导入
+from scheduler.task_result_repo import ConfluenceUpdater, TaskResultRepository
 from scheduler.config import load_config, setup_logging
 
 from scheduler.repository import TaskRepository
@@ -34,10 +35,17 @@ def create_app() -> FastAPI:
 
     # 4) 初始化仓库/执行器/服务
     task_repo = TaskRepository()  # 仍然使用In-memory仓库
-    task_executor = TaskExecutor(task_repo)
+    result_repo = TaskResultRepository()
+    task_executor = TaskExecutor(task_repo,result_repo)
+    # 创建全局 TaskResultRepository
+
+    # 创建 ConfluenceUpdater
+    conf_updater = ConfluenceUpdater()
     scheduler_service = SchedulerService(
         task_repository=task_repo,
         task_executor=task_executor,
+        task_result_repo=result_repo,
+        confluence_updater=conf_updater,
         poll_interval=poll_interval,
         concurrency=concurrency,
         coalesce=coalesce,

@@ -5,6 +5,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 
+from scheduler.task_result_repo import ConfluenceUpdater, TaskResultRepository
+
 from .fetch_service import ExternalTaskFetcher
 
 class SchedulerService:
@@ -15,12 +17,16 @@ class SchedulerService:
     def __init__(self, 
                  task_repository, 
                  task_executor,
+                 task_result_repo,
+                 confluence_updater,
                  poll_interval=30,
                  concurrency=5,
                  coalesce=False,
                  max_instances=5):
         self.task_repository = task_repository
         self.task_executor = task_executor
+        self.task_result_repo = task_result_repo
+        self.confluence_updater = confluence_updater
         self.fetcher = ExternalTaskFetcher(task_repository)
 
         self.poll_interval = poll_interval
@@ -46,6 +52,16 @@ class SchedulerService:
             trigger='interval',
             seconds=self.poll_interval,
             id='poll_db_job',
+            replace_existing=True
+        )
+
+        logging.info("Starting APScheduler with poll_interval=%s", self.poll_interval)
+        # 1-2) AggregatorJob for confluence data update
+        self.scheduler.add_job(
+            func=self.poll_db_for_new_tasks,
+            trigger='interval',
+            seconds=self.poll_interval,
+            id='update_confl_job',
             replace_existing=True
         )
 
@@ -77,6 +93,18 @@ class SchedulerService:
             elif t.task_type == 'immediate':
                 self.add_immediate_job(t.id)
                 self.task_repository.update_task_status(t.id, 'QUEUED')
+    def update_confl_page(self):
+        results = self.task_result_repo.get_all_results()
+        if not results:
+            logging.info("AggregatorJob: no new results to update.")
+            return
+
+        logging.info("AggregatorJob: found %d results, updating Confluence...", len(results))
+        # 在此可做更多聚合、格式化
+        self.confluence_updater.update_confluence(results)
+        # 清空已处理的
+        self.task_result_repo.clear_results()
+        logging.info("AggregatorJob: done updating Confluence and clearing results.")
 
     def add_scheduled_job(self, task_id, cron_expr):
         job_id = f"task_{task_id}"

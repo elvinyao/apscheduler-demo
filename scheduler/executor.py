@@ -15,8 +15,9 @@ class TaskExecutor:
     """
     Contains the logic for executing tasks.
     """
-    def __init__(self, task_repository):
+    def __init__(self, task_repository,task_result_repo):
         self.task_repository = task_repository
+        self.task_result_repo = task_result_repo
 
     def read_data(self):
         """
@@ -71,3 +72,16 @@ class TaskExecutor:
             # 如果发生异常, 标记FAILED
             self.task_repository.update_task_status(task_id, 'FAILED')
             logging.error(f"Task {task.id} failed with error: {e}")
+        finally:
+            # 无论成功与否
+            logging.info(f"execute_task({task_id}) finally block.")
+            time.sleep(1)  # 模拟某种处理
+            taskDto=self.task_repository.get_task_by_id(task_id)
+            result_item = {
+                "task_id": task_id,
+                "result_value": f"processed_{task_id}",
+                "result_status_value": f"{taskDto}",
+                "timestamp": time.time()
+            }
+            self.task_result_repo.save_task_result(result_item)
+            logging.info(f"execute_task({task_id}) done, result saved.")
