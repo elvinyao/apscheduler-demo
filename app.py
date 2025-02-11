@@ -11,6 +11,7 @@ from scheduler.config import load_config, setup_logging
 
 from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
+from scheduler.schemas import TaskListResponse
 from scheduler.service import SchedulerService
 from scheduler.models import TaskOut
 
@@ -54,9 +55,41 @@ def create_app() -> FastAPI:
         logging.info("Shutting down scheduler.")
         scheduler_service.shutdown()
 
-    @app.get("/tasks", response_model=List[TaskOut])
+    @app.get("/tasks", response_model=TaskListResponse)
     def list_tasks():
-        return task_repo.get_all_tasks()
+        tasks = task_repo.get_all_tasks()
+        return TaskListResponse(
+            total_count=len(tasks),
+            data=tasks
+        )
+
+    
+
+    # [NEW] 查询指定状态的tasks
+    @app.get("/tasks/status/{status}", response_model=TaskListResponse)
+    def list_tasks_by_status(status: str):
+        """
+        Return tasks that match the given status.
+        Possible statuses: PENDING, RUNNING, DONE, FAILED, SCHEDULED, QUEUED, ...
+        """
+        tasks=task_repo.get_tasks_by_status(status)
+        return TaskListResponse(
+            total_count=len(tasks),
+            data=tasks
+        )
+    
+
+    # [NEW] 查询已完成任务 (执行历史)
+    @app.get("/task_history", response_model=TaskListResponse)
+    def get_task_history():
+        """
+        Return the entire list of tasks that have ended up in DONE or FAILED.
+        """
+        tasks=task_repo.get_all_executed_tasks()
+        return TaskListResponse(
+            total_count=len(tasks),
+            data=tasks
+        )
 
     return app
 

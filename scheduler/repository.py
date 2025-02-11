@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import List, Optional
 from .models import Task
@@ -9,6 +10,8 @@ class TaskRepository:
     def __init__(self):
         self._tasks: List[Task] = []
         self._id_counter = 1  # Simple counter for generating IDs
+        # [NEW] 用于记录已执行完毕的任务 (DONE或FAILED)
+        self._task_execute_history: List[Task] = []
 
     def get_task_by_id(self, task_id: int) -> Optional[Task]:
         for task in self._tasks:
@@ -23,6 +26,10 @@ class TaskRepository:
         task = self.get_task_by_id(task_id)
         if task:
             task.update_status(new_status)
+            # [NEW] 如果状态变更为DONE或FAILED，则记录到history
+            if new_status in ("DONE", "FAILED"):
+                # 深拷贝一份存入history，防止后续被修改
+                self._task_execute_history.append(deepcopy(task))
 
     def add_task(self, task_data: dict) -> Task:
         task = Task(
@@ -35,6 +42,15 @@ class TaskRepository:
 
     def get_all_tasks(self) -> List[Task]:
         return self._tasks
+    
+    # [NEW] 返回指定状态的任务列表
+    def get_tasks_by_status(self, status: str) -> List[Task]:
+        return [task for task in self._tasks if task.status.upper() == status.upper()]
+    
+    # [NEW] 返回所有已执行完成的任务历史 (DONE / FAILED)
+    def get_all_executed_tasks(self) -> List[Task]:
+        # 这就是 _task_execute_history
+        return self._task_execute_history
 
     def seed_demo_data(self):
         """
