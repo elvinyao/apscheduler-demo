@@ -273,14 +273,14 @@ python app.py
 
 ```mermaid
 flowchart LR
-    A[ユーザ\nまたは他のクライアント] -->|HTTP/REST| B(FastAPI\napp.py)
-    B --> C[SchedulerService\n(APScheduler)]
-    B --> D[TaskRepository\n(In-Memory)]
+    A[ユーザ] -->|HTTP/REST| B(FastAPI「app.py」)
+    B --> C[SchedulerService「APScheduler」]
+    B --> D[TaskRepository「In-Memory」]
     C --> D
-    C --> E[TaskExecutor\n(executor.py)]
+    C --> E[TaskExecutor「executor.py」]
     E --> D
-    E --> F[ConfluenceHelper\nJiraHelper など]
-    F -->|API| G[Confluence / Jira /\nその他外部サービス]
+    E --> F[ConfluenceHelper「JiraHelper など」]
+    F -->|API| G[Confluence / Jira /「その他外部サービス]
     E --> H[TaskResultRepository]
     H --> I[ConfluenceUpdater]
     I -->|API| G
