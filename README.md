@@ -1,5 +1,4 @@
-以下は、前回提示した README にシステム構成図（アーキテクチャ図）とシステムの業務フロー図を追加したものです。図の説明や注釈も日語で記載しています。  
-Markdown の中で Mermaid を使用して描画しているため、Mermaid 対応エディタや GitHub 上でプレビューすると図を視覚的に確認できます。
+以下は、Mermaid 図の `<br>` タグを削除・置換し、正しく描画できるように修正した README のサンプルです。Markdown 上で Mermaid に対応した環境(GitHub、VS Code の拡張機能など)でプレビューすると、図を視覚的に確認できます。
 
 ---
 
@@ -23,13 +22,13 @@ Markdown の中で Mermaid を使用して描画しているため、Mermaid 対
    3. [スケジューリングとサービス (scheduler/service.py)](#スケジューリングとサービス-schedulerservicepy)  
    4. [実行ロジック (scheduler/executor.py)](#実行ロジック-schedulerexecutorpy)  
    5. [タスクの外部取得 (scheduler/fetch_service.py)](#タスクの外部取得-schedulerfetch_servicepy)  
-   6. [結果保存と Confluence 更新 (scheduler/task_result_repopy)](#結果保存と-confluence-更新-schedulertask_result_repopy)  
+   6. [結果保存と Confluence 更新 (scheduler/task_result_repo.py)](#結果保存と-confluence-更新-schedulertask_result_repopy)  
    7. [Confluence・Jira ハンドラ (handlers/)](#confluencejira-ハンドラ-handlers)  
 8. [FastAPI エンドポイント](#fastapi-エンドポイント)  
 9. [システム構成図（アーキテクチャ図）](#システム構成図アーキテクチャ図)  
 10. [システム業務フロー図](#システム業務フロー図)  
 11. [拡張方法](#拡張方法)  
-12. [技術的ポイントとベストプラクティス](#技術的ポイントとベストプラクティス)  
+12. [技術的ポイントとベストプラクティス](#技術的ポイントとベストプラクティクス)  
 13. [セキュリティと秘密情報の扱い](#セキュリティと秘密情報の扱い)  
 14. [ライセンス](#ライセンス)
 
@@ -285,6 +284,7 @@ flowchart LR
     E --> H[TaskResultRepository]
     H --> I[ConfluenceUpdater]
     I -->|API| G
+
     style B fill:#ffd699,stroke:#e38f04,stroke-width:2px
     style C fill:#d3f2e3,stroke:#259d6d,stroke-width:2px
     style D fill:#faf6d5,stroke:#b39b00,stroke-width:2px
@@ -324,8 +324,8 @@ sequenceDiagram
     participant EXE as TaskExecutor
     participant RES as TaskResultRepository
     participant CFX as ConfluenceUpdater / ConfluenceHelper
-    
-    USER->>API: タスク一覧取得 (GET /tasks) \nまたはその他操作
+
+    USER->>API: タスク一覧取得 (GET /tasks)\nまたはその他操作
     API->>REP: タスクデータ読み込み (In-Memory)
     API-->>USER: タスク一覧を返却
 
@@ -381,7 +381,7 @@ sequenceDiagram
 
 ---
 
-## 技術的ポイントとベストプラクティス
+## 技術的ポイントとベストプラクティクス
 
 1. **並列実行 (ThreadPoolExecutor)**  
    - `config.yaml` の `concurrency: 500` は実行環境に応じて調整推奨。高い数値は大規模・I/O バウンド向け。  
@@ -426,8 +426,8 @@ sequenceDiagram
 ---
 
 以上が **My Scheduler App** の機能一覧と技術仕様、そしてシステム構成図・業務フロー図です。  
-APScheduler、FastAPI、そして外部サービス(Jira・Confluenceなど)との連携例を示すアプリケーションとしてお役立てください。  
+APScheduler、FastAPI、そして外部サービス(Jira・Confluenceなど)との連携例を示すアプリケーションとしてお役立てください。
 
-カスタマイズや拡張に際し、不明点や追加機能に関するご要望があれば、ぜひご相談ください。  
+カスタマイズや拡張に際し、不明点や追加機能に関するご要望があれば、ぜひご相談ください。
 
 **Happy Scheduling!**
