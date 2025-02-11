@@ -3,16 +3,16 @@ from fastapi import FastAPI
 from typing import List
 import uvicorn
 
-from scheduler.database import SessionLocal
 from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
 from scheduler.service import SchedulerService
-from scheduler.models import Task, TaskOut
+from scheduler.models import TaskOut
 
 def create_app() -> FastAPI:
     app = FastAPI()
 
-    task_repo = TaskRepository(SessionLocal)
+    # Create a single instance of TaskRepository to maintain state
+    task_repo = TaskRepository()
     task_executor = TaskExecutor(task_repo)
     scheduler_service = SchedulerService(task_repo, task_executor)
 
@@ -27,16 +27,14 @@ def create_app() -> FastAPI:
 
     @app.get("/tasks", response_model=List[TaskOut])
     def list_tasks():
-        with SessionLocal() as session:
-            tasks = session.query(Task).all()
-            return tasks
+        return task_repo.get_all_tasks()
+        
     return app
 
 def main():
     """
     Main function to parse arguments, create the app, and run with uvicorn.
     """
-  
     app = create_app()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
@@ -46,4 +44,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         sys.exit(0)
     except Exception as e:
+        print(f"Error: {e}")
         sys.exit(1)

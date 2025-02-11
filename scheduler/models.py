@@ -1,36 +1,20 @@
-"""
-models.py
-Defines the SQLAlchemy models (tables) in your application.
-"""
-
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, func
+from pydantic import BaseModel, Field
+from uuid import uuid4
 
-Base = declarative_base()
-
-class Task(Base):
-    __tablename__ = 'tasks'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    task_type = Column(String, nullable=False)  # e.g., 'scheduled' or 'immediate'
-    cron_expr = Column(String, nullable=True)   # e.g., "*/5 * * * *" for scheduled tasks
-    status = Column(String, default='PENDING')  # e.g., 'PENDING', 'RUNNING', 'DONE', 'FAILED'
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-
-
-class TaskOut(BaseModel):
+class Task(BaseModel):
     id: int
     name: str
-    task_type: str
-    cron_expr: Optional[str]
-    status: str
-    created_at: datetime
-    updated_at: datetime
+    task_type: str  # e.g., 'scheduled' or 'immediate'
+    cron_expr: Optional[str] = None   # e.g., "*/5 * * * *" for scheduled tasks
+    status: str = 'PENDING'  # e.g., 'PENDING', 'RUNNING', 'DONE', 'FAILED'
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
 
-    class Config:
-        from_attributes = True
+    def update_status(self, new_status: str):
+        self.status = new_status
+        self.updated_at = datetime.now()
+
+class TaskOut(Task):
+    pass
