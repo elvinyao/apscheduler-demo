@@ -274,14 +274,14 @@ python app.py
 
 ```mermaid
 flowchart LR
-    A[ユーザ<br>または他のクライアント] -->|HTTP/REST| B(FastAPI<br>app.py)
-    B --> C[SchedulerService<br>(APScheduler)]
-    B --> D[TaskRepository<br>(In-Memory)]
+    A[ユーザ\nまたは他のクライアント] -->|HTTP/REST| B(FastAPI\napp.py)
+    B --> C[SchedulerService\n(APScheduler)]
+    B --> D[TaskRepository\n(In-Memory)]
     C --> D
-    C --> E[TaskExecutor<br>(executor.py)]
+    C --> E[TaskExecutor\n(executor.py)]
     E --> D
-    E --> F[ConfluenceHelper<br>JiraHelper など]
-    F -->|API| G[Confluence / Jira /<br>その他外部サービス]
+    E --> F[ConfluenceHelper\nJiraHelper など]
+    F -->|API| G[Confluence / Jira /\nその他外部サービス]
     E --> H[TaskResultRepository]
     H --> I[ConfluenceUpdater]
     I -->|API| G
@@ -325,7 +325,7 @@ sequenceDiagram
     participant RES as TaskResultRepository
     participant CFX as ConfluenceUpdater / ConfluenceHelper
     
-    USER->>API: タスク一覧取得 (GET /tasks) <br>またはその他操作
+    USER->>API: タスク一覧取得 (GET /tasks) \nまたはその他操作
     API->>REP: タスクデータ読み込み (In-Memory)
     API-->>USER: タスク一覧を返却
 
@@ -344,7 +344,7 @@ sequenceDiagram
     CFX->>CFX: Confluence API などで更新
     CFX->>RES: 結果をクリア（あるいは別管理）
 
-    note over SCH,EXE: このサイクルが<br>一定間隔で繰り返される
+    note over SCH,EXE: このサイクルが\n一定間隔で繰り返される
 ```
 
 - **1. タスク一覧取得**  
