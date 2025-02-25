@@ -7,9 +7,9 @@ import logging
 import time
 from datetime import datetime
 
-from scheduler.jira_data_processor import JiraDataProcessor
-from scheduler.mattermost_data_processor import MattermostDataProcessor
-from scheduler.confluence_data_processor import ConfluenceDataProcessor
+from domain.jira_data_processor import JiraDataProcessor
+from domain.mattermost_data_processor import MattermostDataProcessor
+from domain.confluence_data_processor import ConfluenceDataProcessor
 
 class TaskExecutor:
     """

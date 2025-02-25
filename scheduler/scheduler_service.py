@@ -58,7 +58,7 @@ class SchedulerService:
         logging.info("Starting APScheduler with poll_interval=%s", self.poll_interval)
         # 1-2) AggregatorJob for confluence data update
         self.scheduler.add_job(
-            func=self.poll_db_for_new_tasks,
+            func=self.update_confl_page,
             trigger='interval',
             seconds=self.poll_interval,
             id='update_confl_job',

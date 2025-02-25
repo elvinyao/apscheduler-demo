@@ -13,7 +13,7 @@ from scheduler.config import load_config, setup_logging
 from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
 from scheduler.schemas import TaskListResponse
-from scheduler.service import SchedulerService
+from scheduler.scheduler_service import SchedulerService
 from scheduler.models import TaskOut
 
 def create_app() -> FastAPI:

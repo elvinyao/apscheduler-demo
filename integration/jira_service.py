@@ -1,7 +1,7 @@
 from atlassian import Jira
 
 
-class JiraHelper:
+class JiraService:
     """
     使用 atlassian-python-api 封装对 Jira 的常用操作。
 

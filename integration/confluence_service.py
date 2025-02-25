@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import copy
 
 
-class ConfluenceHelper:
+class ConfluenceService:
     """
     使用 atlassian-python-api 封装对 Confluence 的常用操作。
 
