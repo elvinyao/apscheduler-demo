@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 
+from scheduler.models import TaskStatus, TaskType
 from scheduler.task_result_repo import ConfluenceUpdater, TaskResultRepository
 
 from .fetch_service import ExternalTaskFetcher
@@ -85,12 +86,12 @@ class SchedulerService:
         pending_tasks = self.task_repository.get_pending_tasks()
         for t in pending_tasks:
             logging.info("Found pending task: %s", t)
-            if t.task_type == 'scheduled' and t.cron_expr:
+            if t.task_type == TaskType.SCHEDULED and t.cron_expr:
                 self.add_scheduled_job(t.id, t.cron_expr)
-                self.task_repository.update_task_status(t.id, 'SCHEDULED')
-            elif t.task_type == 'immediate':
+                self.task_repository.update_task_status(t.id, TaskStatus.SCHEDULED)
+            elif t.task_type == TaskType.IMMEDIATE:
                 self.add_immediate_job(t.id)
-                self.task_repository.update_task_status(t.id, 'QUEUED')
+                self.task_repository.update_task_status(t.id, TaskStatus.QUEUED)
     def update_confl_page(self):
         results = self.task_result_repo.get_all_results()
         if not results:

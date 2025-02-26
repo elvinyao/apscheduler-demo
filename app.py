@@ -14,7 +14,7 @@ from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
 from scheduler.schemas import TaskListResponse
 from scheduler.scheduler_service import SchedulerService
-from scheduler.models import TaskOut
+from scheduler.models import TaskOut, TaskStatus
 
 def create_app() -> FastAPI:
     # 1) 加载全局配置
@@ -75,7 +75,7 @@ def create_app() -> FastAPI:
 
     # [NEW] 查询指定状态的tasks
     @app.get("/tasks/status/{status}", response_model=TaskListResponse)
-    def list_tasks_by_status(status: str):
+    def list_tasks_by_status(status: TaskStatus):
         """
         Return tasks that match the given status.
         Possible statuses: PENDING, RUNNING, DONE, FAILED, SCHEDULED, QUEUED, ...

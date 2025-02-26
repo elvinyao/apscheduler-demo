@@ -1,5 +1,7 @@
 # fetch_service.py
 import requests
+
+from scheduler.models import TaskType
 from .repository import TaskRepository
 
 class ExternalTaskFetcher:
@@ -18,8 +20,9 @@ class ExternalTaskFetcher:
         # data = response.json()
         # 这里用假数据演示
         data = [
-            {"name": "Confluence Task 1", "task_type": "immediate", "cron_expr": None},
-            {"name": "Confluence Task 2", "task_type": "scheduled", "cron_expr": "*/10 * * * *"},
+            {"name": "api Task 1", "task_type": TaskType.IMMEDIATE, "cron_expr": None},
+            {"name": "api Task 2", "task_type": TaskType.SCHEDULED, "cron_expr": "*/10 * * * *"}
+
         ]
         # 将这些数据写入数据库
         self._save_tasks(data)
