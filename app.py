@@ -54,8 +54,8 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup():
-        task_repo.seed_demo_data()  # optional
-        logging.info("Seeding demo data and starting scheduler.")
+        # task_repo.seed_demo_data()  # optional
+        # logging.info("Seeding demo data and starting scheduler.")
         scheduler_service.start()
 
     @app.on_event("shutdown")

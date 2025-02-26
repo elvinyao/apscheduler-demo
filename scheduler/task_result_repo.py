@@ -44,6 +44,7 @@ class ConfluenceUpdater:
     统一的Confluence更新逻辑(这里仅用日志模拟)
     """
     def update_confluence(self, aggregated_data: List[Dict[str, Any]]):
-        logging.info("Updating Confluence with aggregated data: %s", aggregated_data)
+        data_preview = str(aggregated_data)[:50] + "..." if len(str(aggregated_data)) > 50 else str(aggregated_data)
+        logging.info("Updating Confluence with aggregated data: %s", data_preview)
         time.sleep(1)
         logging.info("Confluence update done.")

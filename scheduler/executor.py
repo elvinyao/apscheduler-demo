@@ -10,6 +10,7 @@ from datetime import datetime
 from domain.jira_data_processor import JiraDataProcessor
 from domain.mattermost_data_processor import MattermostDataProcessor
 from domain.confluence_data_processor import ConfluenceDataProcessor
+from scheduler.models import TaskStatus
 
 class TaskExecutor:
     """
@@ -37,7 +38,7 @@ class TaskExecutor:
         Finally mark the task as DONE or FAILED.
         """
         # Mark the task as RUNNING
-        self.task_repository.update_task_status(task_id, 'RUNNING')
+        self.task_repository.update_task_status(task_id, TaskStatus.RUNNING)
         task = self.task_repository.get_task_by_id(task_id)
         if not task:
             logging.warning(f"Task with id={task_id} not found.")
@@ -65,12 +66,12 @@ class TaskExecutor:
                 confluence_processor.update_confluence_page()
 
             # 最终标记DONE
-            self.task_repository.update_task_status(task_id, 'DONE')
+            self.task_repository.update_task_status(task_id, TaskStatus.DONE)
             logging.info(f"Task {task.id} completed successfully.")
 
         except Exception as e:
             # 如果发生异常, 标记FAILED
-            self.task_repository.update_task_status(task_id, 'FAILED')
+            self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
             logging.error(f"Task {task.id} failed with error: {e}")
         finally:
             # 无论成功与否

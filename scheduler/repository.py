@@ -58,8 +58,8 @@ class TaskRepository:
         This version seeds 1000 scheduled tasks (same cron) + 500 immediate tasks.
         """
         if not self._tasks:  # Only seed if empty
-            # 1) 1000 scheduled tasks
-            for i in range(1, 1001):
+            # 1) 10 scheduled tasks
+            for i in range(1, 10):
                 self.add_task({
                     "name": f"Scheduled Test {i}",
                     "task_type": TaskType.SCHEDULED,
@@ -67,8 +67,8 @@ class TaskRepository:
                     "status": TaskStatus.PENDING
                 })
 
-            # 2) 500 immediate tasks
-            for j in range(1, 501):
+            # 2) 10 immediate tasks
+            for j in range(1, 10):
                 self.add_task({
                     "name": f"Immediate Task {j}",
                     "task_type": TaskType.IMMEDIATE,

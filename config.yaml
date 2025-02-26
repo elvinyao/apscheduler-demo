@@ -2,7 +2,7 @@
 
 scheduler:
   poll_interval: 30        # 轮询间隔(秒)
-  concurrency: 500           # APScheduler线程池大小
+  concurrency: 10           # APScheduler线程池大小
   coalesce: false
   max_instances: 5
 
