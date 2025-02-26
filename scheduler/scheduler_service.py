@@ -54,8 +54,6 @@ class SchedulerService:
             id='poll_db_job',
             replace_existing=True
         )
-
-        logging.info("Starting APScheduler with poll_interval=%s", self.poll_interval)
         # 1-2) AggregatorJob for confluence data update
         self.scheduler.add_job(
             func=self.update_confl_page,
@@ -107,10 +105,7 @@ class SchedulerService:
         logging.info("AggregatorJob: done updating Confluence and clearing results.")
 
     def add_scheduled_job(self, task_id, cron_expr):
-        job_id = f"task_{task_id}"
-        existing_job = self.scheduler.get_job(job_id)
-        if existing_job:
-            self.scheduler.remove_job(job_id)
+        job_id = f"task_{task_id}"        
 
         cron_trigger = CronTrigger.from_crontab(cron_expr)
         self.scheduler.add_job(
@@ -124,10 +119,7 @@ class SchedulerService:
 
     def add_immediate_job(self, task_id):
         job_id = f"task_{task_id}_immediate"
-        existing_job = self.scheduler.get_job(job_id)
-        if existing_job:
-            self.scheduler.remove_job(job_id)
-
+        
         self.scheduler.add_job(
             func=self.task_executor.execute_task,
             trigger='date',

@@ -1,21 +1,31 @@
-# scheduler/jira_data_processor.py
-
-import time
 import logging
+import time
+from integration.jira_service import JiraService
 
 class JiraDataProcessor:
     """
-    负责与JIRA相关的业务逻辑, 比如通过JQL查询issue、获取最后评论等。
-    这里仅以日志方式模拟。
+    Contains business logic to interpret and respond to JIRA data.
+    Delegates real JIRA calls to JiraService (integration).
     """
-    def process_jira_ticket(self) -> bool:
-        """
-        模拟调用JIRA API、检查最后评论，并返回是否需要后续处理。
-        """
-        logging.info("Simulating calling JIRA API with a JQL to find relevant tickets...")
-        time.sleep(1)  # 模拟网络或处理耗时
-        logging.info("Simulating retrieving the last comment of the ticket...")
+    def __init__(self, jira_service: JiraService):
+        self.jira_service = jira_service
 
-        # 假设我们拿到了评论，需要后续业务:
-        need_post_process = True  # 或根据某些条件返回 False
+    def check_and_process_tickets(self, jql: str) -> bool:
+        """
+        Example domain logic: run a JQL, parse results,
+        and decide if further action is needed.
+        """
+        logging.info("Checking JIRA tickets with JQL: %s", jql)
+        issues = self.jira_service.search_issues(jql, fetch_all=True)
+
+        if not issues:
+            logging.info("No matching issues for JQL: %s", jql)
+            return False
+
+        logging.info("Found %d issues. Checking last comments...", len(issues))
+        time.sleep(0.5)  # domain-level logic or transformations
+
+        # Suppose we find we need post-processing if any issue has a special marker
+        need_post_process = any("SPECIAL_MARKER" in i.get('fields', {}).get('description', '')
+                                for i in issues)
         return need_post_process
