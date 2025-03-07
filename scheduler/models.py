@@ -25,11 +25,12 @@ class TaskPriority(str, Enum):
     
 class RetryPolicy(BaseModel):
     max_retries: int = 3
-    retry_delay: int = 60  # seconds
+    retry_delay: int = 60  # Initial delay in seconds
+    backoff_factor: float = 2.0  # Each retry increases the delay by this factor
     current_retries: int = 0
     
 class Task(BaseModel):
-    id: int
+    id: UUID = Field(default_factory=uuid4)  # Changed from int to UUID with auto-generation
     name: str
     task_type: TaskType
     cron_expr: Optional[str] = None
@@ -37,12 +38,17 @@ class Task(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     priority: TaskPriority = TaskPriority.MEDIUM
+    created_at_iso: str = Field(default_factory=lambda: datetime.now().isoformat())
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    tags: List[str] = Field(default_factory=list)
+    owner: Optional[str] = None  # Username or ID of task creator
+    version: int = 1  # Increment on each update
     
-    # New fields
-    dependencies: List[int] = Field(default_factory=list)  # List of task IDs this task depends on
-    timeout_seconds: Optional[int] = None  # Timeout in seconds, None means no timeout
-    retry_policy: Optional[RetryPolicy] = None  # Retry configuration
-    parameters: Dict[str, Any] = Field(default_factory=dict)  # Task-specific parameters
+    # Update dependencies to use UUID instead of int
+    dependencies: List[UUID] = Field(default_factory=list)
+    timeout_seconds: Optional[int] = None
+    retry_policy: Optional[RetryPolicy] = None
+    parameters: Dict[str, Any] = Field(default_factory=dict)
     
     def update_status(self, new_status: TaskStatus):
         self.status = new_status

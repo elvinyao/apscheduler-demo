@@ -22,10 +22,15 @@ class TaskPersistenceManager:
         """Save current tasks to a snapshot file."""
         try:
             task_dicts = [task.dict() for task in tasks]
-            # Convert datetime objects to ISO format strings
+            # Convert datetime objects to ISO format strings and UUID to string
             for task_dict in task_dicts:
                 task_dict["created_at"] = task_dict["created_at"].isoformat()
                 task_dict["updated_at"] = task_dict["updated_at"].isoformat()
+                task_dict["id"] = str(task_dict["id"])  # Convert UUID to string
+                
+                # Also convert any UUID in dependencies list
+                if "dependencies" in task_dict:
+                    task_dict["dependencies"] = [str(dep) for dep in task_dict["dependencies"]]
             
             with open(self.snapshot_file, 'w') as f:
                 json.dump(task_dicts, f, indent=2)
@@ -34,7 +39,7 @@ class TaskPersistenceManager:
         except Exception as e:
             logging.error(f"Failed to save tasks snapshot: {e}")
             return False
-    
+
     def load_tasks_snapshot(self) -> Optional[List[Dict[str, Any]]]:
         """Load tasks from the snapshot file."""
         if not os.path.exists(self.snapshot_file):
@@ -45,10 +50,15 @@ class TaskPersistenceManager:
             with open(self.snapshot_file, 'r') as f:
                 task_dicts = json.load(f)
             
-            # Convert ISO format strings back to datetime objects
+            # Convert ISO format strings to datetime objects and string to UUID
             for task_dict in task_dicts:
                 task_dict["created_at"] = datetime.fromisoformat(task_dict["created_at"])
                 task_dict["updated_at"] = datetime.fromisoformat(task_dict["updated_at"])
+                task_dict["id"] = UUID(task_dict["id"])  # Convert string to UUID
+                
+                # Also convert dependencies from string to UUID
+                if "dependencies" in task_dict:
+                    task_dict["dependencies"] = [UUID(dep) for dep in task_dict["dependencies"]]
             
             logging.info(f"Loaded {len(task_dicts)} tasks from snapshot")
             return task_dicts

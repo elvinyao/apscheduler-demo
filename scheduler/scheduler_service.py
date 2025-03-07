@@ -6,6 +6,7 @@ import time
 from queue import PriorityQueue
 from threading import Lock, Timer
 from datetime import datetime, timedelta
+from uuid import UUID
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor as APSThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
@@ -346,9 +347,9 @@ class SchedulerService:
                             self.task_repository.update_task_status(dep_task.id, TaskStatus.QUEUED)
                             logging.info(f"Dependency satisfied - added task {dep_task.id} to queue")
 
-    def add_scheduled_job(self, task_id, cron_expr, priority=TaskPriority.MEDIUM):
+    def add_scheduled_job(self, task_id: UUID, cron_expr, priority=TaskPriority.MEDIUM):
         """Add a scheduled job with the given cron expression."""
-        job_id = f"task_{task_id}"        
+        job_id = f"task_{str(task_id)}"  # Convert UUID to string for job_id
         priority_value = self._get_priority_value(priority)
 
         cron_trigger = CronTrigger.from_crontab(cron_expr)
@@ -360,7 +361,7 @@ class SchedulerService:
             replace_existing=True
         )
         logging.info(f"Scheduled recurring job for task_id={task_id}, cron={cron_expr}, priority={priority}")
-
+        
     def _scheduled_task_wrapper(self, task_id, priority_value):
         """Wrapper for scheduled tasks to add them to the queue."""
         with self.queue_lock:

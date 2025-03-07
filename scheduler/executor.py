@@ -45,7 +45,6 @@ class TaskExecutor:
             return {"success": False, "error": "Task not found"}
 
         logging.info(f"[{datetime.now()}] Executing task: id={task.id}, name={task.name}, type={task.task_type}...")
-
         try:
             # For this specific task create a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_task_threads, 

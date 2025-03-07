@@ -1,6 +1,7 @@
 from copy import deepcopy
 from datetime import datetime
 from typing import List, Optional
+from uuid import UUID
 
 from .persistence import TaskPersistenceManager
 from .models import Task, TaskStatus, TaskType
@@ -11,8 +12,7 @@ class TaskRepository:
     """
     def __init__(self, persistence_manager: Optional[TaskPersistenceManager] = None):
         self._tasks: List[Task] = []
-        self._id_counter = 1  # Simple counter for generating IDs
-        # Used to record executed tasks (DONE or FAILED)
+        # No need for _id_counter anymore as we use uuid4()
         self._task_execute_history: List[Task] = []
         self.persistence_manager = persistence_manager or TaskPersistenceManager()
         
@@ -50,7 +50,8 @@ class TaskRepository:
         self.persistence_manager.save_tasks_snapshot(all_tasks)
 
 
-    def get_task_by_id(self, task_id: int) -> Optional[Task]:
+    # Update method signature to use UUID
+    def get_task_by_id(self, task_id: UUID) -> Optional[Task]:
         for task in self._tasks:
             if task.id == task_id:
                 return task
@@ -59,7 +60,8 @@ class TaskRepository:
     def get_pending_tasks(self) -> List[Task]:
         return [task for task in self._tasks if task.status == TaskStatus.PENDING]
 
-    def update_task_status(self, task_id: int, new_status: TaskStatus) -> None:
+    # Update method signature to use UUID
+    def update_task_status(self, task_id: UUID, new_status: TaskStatus) -> None:
         task = self.get_task_by_id(task_id)
         if task:
             task.update_status(new_status)
@@ -72,12 +74,9 @@ class TaskRepository:
             self.persist_tasks()
 
     def add_task(self, task_data: dict) -> Task:
-        task = Task(
-            id=self._id_counter,
-            **task_data
-        )
+        # UUID is now auto-generated in Task model
+        task = Task(**task_data)
         self._tasks.append(task)
-        self._id_counter += 1
         
         # Persist changes to storage
         self.persist_tasks()
