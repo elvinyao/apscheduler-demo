@@ -29,6 +29,7 @@ class Task(BaseModel):
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+    priority: TaskPriority = TaskPriority.MEDIUM  # NEW: Task priority
 
     def update_status(self, new_status: TaskStatus):
         self.status = new_status

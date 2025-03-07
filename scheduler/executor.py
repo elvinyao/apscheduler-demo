@@ -17,9 +17,10 @@ class TaskExecutor:
     """
     Contains the logic for executing tasks with multi-threading support.
     """
-    def __init__(self, task_repository, task_result_repo, max_task_threads=3):
+    def __init__(self, task_repository, task_result_repo, di_container, max_task_threads=3):
         self.task_repository = task_repository
         self.task_result_repo = task_result_repo
+        self.di_container = di_container
         self.max_task_threads = max_task_threads
 
     def read_data(self):
@@ -46,45 +47,47 @@ class TaskExecutor:
         logging.info(f"[{datetime.now()}] Executing task: id={task.id}, name={task.name}, type={task.task_type}...")
 
         try:
-            # 为这个特定任务创建线程池
+            # For this specific task create a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_task_threads, 
                                                      thread_name_prefix=f"Task{task_id}Worker") as task_executor:
                 
                 # ---------------------------
-                # 1) 任务处理 (JIRA) - 这部分必须先执行
+                # 1) Task processing (JIRA) - this part must execute first
                 # ---------------------------
-                jira_processor = JiraDataProcessor()
-                need_post_process = jira_processor.process_jira_ticket()
+                jira_processor = self.di_container.get_jira_data_processor()
+                need_post_process = jira_processor.check_and_process_tickets(
+                    jql=task.parameters.get('jql', 'project = TEST')
+                )
 
                 # ---------------------------
-                # 2) 如果需要后续处理，并行执行后续任务
+                # 2) If post-processing is needed, execute follow-up tasks in parallel
                 # ---------------------------
                 if need_post_process:
-                    logging.info("Comment indicates we need to proceed with post-processing...")
+                    logging.info("JIRA check indicates we need to proceed with post-processing...")
                     
-                    # 并行提交两个后续任务
+                    # Submit two follow-up tasks in parallel
                     future_mattermost = task_executor.submit(self._process_mattermost)
                     future_confluence = task_executor.submit(self._process_confluence)
                     
-                    # 等待两个任务完成
+                    # Wait for both tasks to complete
                     mattermost_result = future_mattermost.result()
                     confluence_result = future_confluence.result()
                     
                     logging.info(f"Parallel processing results - Mattermost: {mattermost_result}, Confluence: {confluence_result}")
 
-            # 任务完成，标记为DONE
+            # Task completed, mark as DONE
             self.task_repository.update_task_status(task_id, TaskStatus.DONE)
             logging.info(f"Task {task.id} completed successfully.")
             result = {"success": True}
 
         except Exception as e:
-            # 如果发生异常, 标记FAILED
+            # If exception occurs, mark as FAILED
             self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
             logging.error(f"Task {task.id} failed with error: {e}")
             result = {"success": False, "error": str(e)}
         
         finally:
-            # 无论成功与否，保存结果
+            # Save the result regardless of success or failure
             taskDto = self.task_repository.get_task_by_id(task_id)
             result_item = {
                 "task_id": task_id,
@@ -99,21 +102,23 @@ class TaskExecutor:
             return result
 
     def _process_mattermost(self):
-        """处理Mattermost相关操作，作为可并行执行的子任务"""
+        """Process Mattermost operations as a parallelizable sub-task"""
         try:
-            mattermost_processor = MattermostDataProcessor()
-            result = mattermost_processor.send_notification()
-            return {"mattermost_success": True, "details": result}
+            mattermost_processor = self.di_container.get_mattermost_data_processor()
+            mattermost_processor.send_notification()
+            return {"mattermost_success": True}
         except Exception as e:
             logging.error(f"Mattermost processing error: {e}")
             return {"mattermost_success": False, "error": str(e)}
 
     def _process_confluence(self):
-        """处理Confluence相关操作，作为可并行执行的子任务"""
+        """Process Confluence operations as a parallelizable sub-task"""
         try:
-            confluence_processor = ConfluenceDataProcessor()
-            result = confluence_processor.update_confluence_page()
-            return {"confluence_success": True, "details": result}
+            confluence_processor = self.di_container.get_confluence_data_processor()
+            page_id = "123456"  # This should come from task parameters
+            new_data = [{"Column1": "Value1"}, {"Column1": "Value2"}]  # This should come from task results
+            success = confluence_processor.handle_page_update(page_id, new_data)
+            return {"confluence_success": success}
         except Exception as e:
             logging.error(f"Confluence processing error: {e}")
             return {"confluence_success": False, "error": str(e)}

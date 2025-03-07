@@ -7,6 +7,7 @@ import uvicorn
 import logging
 
 # 新增导入
+from core.di_container import DIContainer
 from scheduler.task_result_repo import ConfluenceUpdater, TaskResultRepository
 from scheduler.config import load_config, setup_logging
 
@@ -17,39 +18,34 @@ from scheduler.scheduler_service import SchedulerService
 from scheduler.models import TaskStatus
 
 def create_app() -> FastAPI:
-    # 1) 加载全局配置
-    config = load_config()  # 默认从config.yaml
-    # 2) 设置日志
+    # 1) Load global config
+    config = load_config()  # Default from config.yaml
+    # 2) Set up logging
     setup_logging(config.get("log", {}))
 
     app = FastAPI()
 
-    # 3) 从配置里获取scheduler相关选项
-    sched_conf = config.get("scheduler", {})
-    poll_interval = sched_conf.get("poll_interval", 30)
-    concurrency = sched_conf.get("concurrency", 5)
-    coalesce = sched_conf.get("coalesce", False)
-    max_instances = sched_conf.get("max_instances", 5)
-
-    logging.info("Scheduler config loaded: %s", sched_conf)
-
-    # 4) 初始化仓库/执行器/服务
-    task_repo = TaskRepository()  # 仍然使用In-memory仓库
+    # 3) Create dependency injection container
+    di_container = DIContainer(config)
+    
+    # 4) Initialize repositories and services
+    task_repo = TaskRepository()
     result_repo = TaskResultRepository()
-    task_executor = TaskExecutor(task_repo,result_repo)
-    # 创建全局 TaskResultRepository
-
-    # 创建 ConfluenceUpdater
+    task_executor = TaskExecutor(task_repo, result_repo, di_container)
+    
+    # 5) Create ConfluenceUpdater
     conf_updater = ConfluenceUpdater()
+    sched_conf = config.get("scheduler", {})
+    logging.info("Scheduler config loaded: %s", sched_conf)
     scheduler_service = SchedulerService(
         task_repository=task_repo,
         task_executor=task_executor,
         task_result_repo=result_repo,
         confluence_updater=conf_updater,
-        poll_interval=poll_interval,
-        max_concurrent_jobs=concurrency,
-        coalesce=coalesce,
-        max_instances=max_instances
+        poll_interval=sched_conf.get("poll_interval", 30),
+        max_concurrent_jobs=sched_conf.get("concurrency", 5),
+        coalesce=sched_conf.get("coalesce", False),
+        max_instances=sched_conf.get("max_instances", 5)
     )
 
     @app.on_event("startup")

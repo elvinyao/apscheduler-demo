@@ -1,4 +1,13 @@
 # config.yaml
+confluence:
+  url: "https://your-confluence-instance.com"
+  username: "your_username"
+  password: "your_password"
+
+jira:
+  url: "https://your-jira-instance.com"
+  username: "your_username"
+  password: "your_password"
 
 scheduler:
   poll_interval: 30        # 轮询间隔(秒)
