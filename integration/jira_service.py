@@ -1,3 +1,4 @@
+import logging
 from atlassian import Jira
 
 
@@ -25,6 +26,17 @@ class JiraService:
             username=username,
             password=password
         )
+    def check_project_permission_mock(self, project_key: str, check_username: str) -> bool:
+        """
+        Mock
+
+        :param project_key: Jira 项目的 Key
+        :param check_username: 要检查权限的用户名
+        :return: 如果用户在项目角色中出现，则返回 True，否则 False
+        """
+        
+
+        return True
 
     def check_project_permission(self, project_key: str, check_username: str) -> bool:
         """
@@ -202,3 +214,95 @@ class JiraService:
         except Exception as e:
             print(f"删除 Issue [{issue_key}] 失败: {e}")
             return False
+    def get_issues_by_root_ticket(self, jira_env_url: str, root_ticket_key: str, fields: list = None):
+        """
+        根据root-ticket key获取相关的JIRA issues数据
+        
+        :param jira_env_url: JIRA环境URL，如env1.jira.com
+        :param root_ticket_key: 根ticket的key，如"PROJ-123"
+        :param fields: 需要获取的字段列表
+        :return: 包含相关issues及其亲子关系的数据
+        """
+        # 模拟API调用，实际项目中应替换为真实的JIRA API调用
+        # 构造模拟数据 - 包含层级结构
+        mock_data = {
+            "issues": [
+                {
+                    "id": "10001",
+                    "key": root_ticket_key,
+                    "fields": {
+                        "summary": f"Root Ticket for {root_ticket_key}",
+                        "description": "This is a root ticket",
+                        "status": {"name": "Open"},
+                        "issuetype": {"name": "Epic"},
+                        "parent": None  # 根ticket没有父级
+                    }
+                },
+                {
+                    "id": "10002",
+                    "key": f"{root_ticket_key.split('-')[0]}-124",
+                    "fields": {
+                        "summary": "Child Ticket 1",
+                        "description": "This is a child ticket",
+                        "status": {"name": "In Progress"},
+                        "issuetype": {"name": "Task"},
+                        "parent": {"key": root_ticket_key}
+                    }
+                },
+                {
+                    "id": "10003",
+                    "key": f"{root_ticket_key.split('-')[0]}-125",
+                    "fields": {
+                        "summary": "Child Ticket 2",
+                        "description": "Another child ticket",
+                        "status": {"name": "Done"},
+                        "issuetype": {"name": "Bug"},
+                        "parent": {"key": root_ticket_key}
+                    }
+                }
+            ]
+        }
+        
+        # 记录API调用日志
+        logging.info(f"Retrieved {len(mock_data['issues'])} issues from {jira_env_url} for root ticket {root_ticket_key}")
+        
+        return mock_data
+
+    def get_issues_by_project(self, jira_env_url: str, project_key: str, fields: list = None):
+        """
+        根据project key获取相关的JIRA issues数据
+        
+        :param jira_env_url: JIRA环境URL，如env1.jira.com
+        :param project_key: 项目的key，如"PROJ"
+        :param fields: 需要获取的字段列表
+        :return: 该项目下的issues数据
+        """
+        # 模拟API调用
+        mock_data = {
+            "issues": [
+                {
+                    "id": "20001",
+                    "key": f"{project_key}-100",
+                    "fields": {
+                        "summary": "Project Task 1",
+                        "description": "First task in project",
+                        "status": {"name": "Open"},
+                        "issuetype": {"name": "Task"}
+                    }
+                },
+                {
+                    "id": "20002",
+                    "key": f"{project_key}-101",
+                    "fields": {
+                        "summary": "Project Task 2",
+                        "description": "Second task in project",
+                        "status": {"name": "In Progress"},
+                        "issuetype": {"name": "Task"}
+                    }
+                }
+            ]
+        }
+        
+        logging.info(f"Retrieved {len(mock_data['issues'])} issues from {jira_env_url} for project {project_key}")
+        
+        return mock_data

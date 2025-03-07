@@ -15,7 +15,7 @@ from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
 from scheduler.schemas import TaskListResponse
 from scheduler.scheduler_service import SchedulerService
-from scheduler.models import TaskStatus
+from scheduler.models import TaskStatus, TaskType
 
 def create_app() -> FastAPI:
     # 1) Load global config
@@ -31,6 +31,39 @@ def create_app() -> FastAPI:
     # 4) Initialize repositories and services
     task_repo = TaskRepository()
     result_repo = TaskResultRepository()
+    
+
+    # 创建一个使用root-ticket key的任务
+    root_ticket_task = {
+        "name": "JIRA Extraction - Root Ticket",
+        "task_type": TaskType.IMMEDIATE,  # 或 TaskType.SCHEDULED
+        "tags": ["JIRA_TASK_EXP"],
+        "parameters": {
+            "jira_envs": ["env1.jira.com", "env2.jira.com"],
+            "key_type": "root_ticket",
+            "key_value": "PROJ-123",
+            "user": "johndoe"
+        }
+    }
+
+    # 创建一个使用project key的任务
+    project_task = {
+        "name": "JIRA Extraction - Project",
+        "task_type": TaskType.IMMEDIATE,
+        "cron_expr": "0 0 * * *",  # 每天凌晨执行
+        "tags": ["JIRA_TASK_EXP"],
+        "parameters": {
+            "jira_envs": ["env1.jira.com"],
+            "key_type": "project",
+            "key_value": "PROJ",
+            "user": "johndoe"
+        }
+    }
+
+    # 使用repository添加任务
+    task_repo.add_task(root_ticket_task)
+    task_repo.add_task(project_task)
+
     task_executor = TaskExecutor(task_repo, result_repo, di_container)
     
     # 5) Create ConfluenceUpdater

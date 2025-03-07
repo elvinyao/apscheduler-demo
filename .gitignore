@@ -178,3 +178,5 @@ cython_debug/
 logs/
 
 repomix-output.txt
+
+task_storage/

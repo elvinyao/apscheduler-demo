@@ -11,7 +11,7 @@ from datetime import datetime
 from domain.jira_data_processor import JiraDataProcessor
 from domain.mattermost_data_processor import MattermostDataProcessor
 from domain.confluence_data_processor import ConfluenceDataProcessor
-from scheduler.models import TaskStatus
+from scheduler.models import TaskStatus, TaskType
 
 class TaskExecutor:
     """
@@ -46,6 +46,27 @@ class TaskExecutor:
 
         logging.info(f"[{datetime.now()}] Executing task: id={task.id}, name={task.name}, type={task.task_type}...")
         try:
+                        # 检查任务标签，处理JIRA_TASK_EXP标签
+            if "JIRA_TASK_EXP" in task.tags:
+                jira_processor = self.di_container.get_jira_data_processor()
+                
+                # 构造任务参数
+                jira_task_params = {
+                    "jira_envs": task.parameters.get('jira_envs', []),
+                    "key_type": task.parameters.get('key_type'),  # "root_ticket" 或 "project"
+                    "key_value": task.parameters.get('key_value'),
+                    "user": task.parameters.get('user'),
+                    "is_scheduled": task.task_type == TaskType.SCHEDULED
+                }
+                
+                # 调用处理方法
+                result = jira_processor.process_jira_task_exp(jira_task_params)
+                logging.info(f"JIRA_TASK_EXP processing result: {result}")
+                
+                # 任务完成，标记为DONE
+                self.task_repository.update_task_status(task_id, TaskStatus.DONE)
+                logging.info(f"Task {task.id} completed successfully.")
+                return result
             # For this specific task create a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_task_threads, 
                                                      thread_name_prefix=f"Task{task_id}Worker") as task_executor:

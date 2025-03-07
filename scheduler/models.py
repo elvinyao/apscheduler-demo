@@ -1,3 +1,8 @@
+# 在 models.py 中添加新的常量
+JIRA_TASK_EXP = "JIRA_TASK_EXP"  # 添加在文件顶部或适当位置
+
+# 在 Task 类中确保 tags 字段可以包含这个新标签
+
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, List, Dict, Any
