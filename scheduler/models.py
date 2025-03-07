@@ -15,6 +15,11 @@ class TaskStatus(str, Enum):
     FAILED = 'FAILED'
     SCHEDULED = 'SCHEDULED'
     QUEUED = 'QUEUED'
+
+class TaskPriority(str, Enum):
+    HIGH = 'HIGH'
+    MEDIUM = 'MEDIUM'
+    LOW = 'LOW'
     
 class Task(BaseModel):
     id: int

@@ -14,7 +14,7 @@ from scheduler.repository import TaskRepository
 from scheduler.executor import TaskExecutor
 from scheduler.schemas import TaskListResponse
 from scheduler.scheduler_service import SchedulerService
-from scheduler.models import TaskOut, TaskStatus
+from scheduler.models import TaskStatus
 
 def create_app() -> FastAPI:
     # 1) 加载全局配置
@@ -47,7 +47,7 @@ def create_app() -> FastAPI:
         task_result_repo=result_repo,
         confluence_updater=conf_updater,
         poll_interval=poll_interval,
-        concurrency=concurrency,
+        max_concurrent_jobs=concurrency,
         coalesce=coalesce,
         max_instances=max_instances
     )
