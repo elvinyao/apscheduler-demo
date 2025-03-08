@@ -1,5 +1,6 @@
 # Add a new file: core/di_container.py
 from typing import Dict, Any
+from domain.result_reporter import ResultReporter
 from integration.confluence_service import ConfluenceService
 from integration.jira_service import JiraService
 from domain.confluence_data_processor import ConfluenceDataProcessor
@@ -51,3 +52,11 @@ class DIContainer:
         if 'mattermost_data_processor' not in self._services:
             self._services['mattermost_data_processor'] = MattermostDataProcessor()
         return self._services['mattermost_data_processor']
+    
+    def get_result_reporter(self) -> ResultReporter:
+        if 'result_reporter' not in self._services:
+            # 初始化 ResultReporter，同时注入 mattermost_processor
+            self._services['result_reporter'] = ResultReporter(
+                mattermost_processor=self.get_mattermost_data_processor()
+            )
+        return self._services['result_reporter']

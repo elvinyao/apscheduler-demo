@@ -118,6 +118,12 @@ class TaskExecutor:
             }
             self.task_result_repo.save_task_result(result_item)
             logging.info(f"execute_task({task_id}) done, result saved.")
+
+            # [新增] 使用外部注入类对结果进行后续处理（发送到 Mattermost 等）
+            if taskDto:
+                # 从 DIContainer 获取我们注册的 ResultReporter
+                result_reporter = self.di_container.get_result_reporter()
+                result_reporter.handle_task_result(taskDto, result_item)
             
             return result
 

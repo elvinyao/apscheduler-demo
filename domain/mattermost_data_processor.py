@@ -11,3 +11,8 @@ class MattermostDataProcessor:
         logging.info("Simulating sending notification to Mattermost user...")
         time.sleep(1)  # 模拟网络
         logging.info("Mattermost notification sent successfully.")
+
+    def send_custom_message(self,text: str):
+        logging.info(f"Sending custom Mattermost message: {text}")
+        time.sleep(1) # 模拟网络发送
+        logging.info("Custom message sent to Mattermost successfully.")
