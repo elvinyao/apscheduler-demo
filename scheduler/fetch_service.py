@@ -20,8 +20,8 @@ class ExternalTaskFetcher:
         # data = response.json()
         # 这里用假数据演示
         data = [
-            {"name": "Confluence Task 1", "task_type": TaskType.IMMEDIATE, "cron_expr": None},
-            {"name": "Confluence Task 2", "task_type": TaskType.SCHEDULED, "cron_expr": "*/10 * * * *"}
+            # {"name": "Confluence Task 1", "task_type": TaskType.IMMEDIATE, "cron_expr": None},
+            # {"name": "Confluence Task 2", "task_type": TaskType.SCHEDULED, "cron_expr": "*/10 * * * *"}
 
         ]
         # 将这些数据写入数据库
@@ -34,8 +34,8 @@ class ExternalTaskFetcher:
         # response = requests.get(endpoint)
         # data = response.json()
         data = [
-            {"name": "api Task 1", "task_type": TaskType.IMMEDIATE, "cron_expr": None},
-            {"name": "api Task 2", "task_type": TaskType.SCHEDULED, "cron_expr": "*/10 * * * *"},
+            # {"name": "api Task 1", "task_type": TaskType.IMMEDIATE, "cron_expr": None},
+            # {"name": "api Task 2", "task_type": TaskType.SCHEDULED, "cron_expr": "*/10 * * * *"},
         ]
         # 假设data是一个任务列表
         self._save_tasks(data)
@@ -53,5 +53,5 @@ class ExternalTaskFetcher:
                 "status": TaskStatus.PENDING
             }
             # 直接调用 in-memory repository 的 add_task
-            self.task_repository.add_task(task_data)
+            self.task_repository.add(task_data)
 

@@ -39,7 +39,7 @@ class TaskExecutor:
         """
         # Mark the task as RUNNING
         self.task_repository.update_task_status(task_id, TaskStatus.RUNNING)
-        task = self.task_repository.get_task_by_id(task_id)
+        task = self.task_repository.get_by_id(task_id)
         if not task:
             logging.warning(f"Task with id={task_id} not found.")
             return {"success": False, "error": "Task not found"}
@@ -108,7 +108,7 @@ class TaskExecutor:
         
         finally:
             # Save the result regardless of success or failure
-            taskDto = self.task_repository.get_task_by_id(task_id)
+            taskDto = self.task_repository.get_by_id(task_id)
             result_item = {
                 "task_id": task_id,
                 "result_value": f"processed_{task_id}",

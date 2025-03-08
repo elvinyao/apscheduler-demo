@@ -136,7 +136,7 @@ class SchedulerService:
 
     def _initialize_dependency_map(self):
         """Initialize dependency map from existing tasks."""
-        all_tasks = self.task_repository.get_all_tasks()
+        all_tasks = self.task_repository.get_all()
         
         for task in all_tasks:
             if task.dependencies:
@@ -161,7 +161,7 @@ class SchedulerService:
             has_unmet_dependencies = False
             if task.dependencies:
                 for dep_id in task.dependencies:
-                    dep_task = self.task_repository.get_task_by_id(dep_id)
+                    dep_task = self.task_repository.get_by_id(dep_id)
                     if not dep_task or dep_task.status != TaskStatus.DONE:
                         # Add to waiting list and skip for now
                         self.waiting_on_dependencies.add(task.id)
@@ -214,7 +214,7 @@ class SchedulerService:
                     break
                     
                 priority, task_id = self.task_queue.get()
-                task = self.task_repository.get_task_by_id(task_id)
+                task = self.task_repository.get_by_id(task_id)
                 
                 if not task:
                     logging.warning(f"Task {task_id} not found in repository, skipping")
@@ -261,7 +261,7 @@ class SchedulerService:
                 logging.warning(f"Task {task_id} timed out after configured timeout period")
                 
                 # Check if the task should be retried
-                task = self.task_repository.get_task_by_id(task_id)
+                task = self.task_repository.get_by_id(task_id)
                 if task and task.should_retry():
                     self._schedule_retry(task)
 
@@ -282,7 +282,7 @@ class SchedulerService:
             self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
             
             # Check if task should be retried
-            task = self.task_repository.get_task_by_id(task_id)
+            task = self.task_repository.get_by_id(task_id)
             if task and task.should_retry():
                 self._schedule_retry(task)
                 
@@ -304,7 +304,7 @@ class SchedulerService:
     def _process_dependent_tasks(self, completed_task_id):
         """Process tasks that were waiting on the completed task."""
         # Get completed task status
-        completed_task = self.task_repository.get_task_by_id(completed_task_id)
+        completed_task = self.task_repository.get_by_id(completed_task_id)
         if not completed_task or completed_task.status != TaskStatus.DONE:
             # Only proceed with dependent tasks if this task completed successfully
             return
@@ -314,13 +314,13 @@ class SchedulerService:
             
             for dep_task_id in dependent_task_ids:
                 # Check if all dependencies are satisfied
-                dep_task = self.task_repository.get_task_by_id(dep_task_id)
+                dep_task = self.task_repository.get_by_id(dep_task_id)
                 if not dep_task:
                     continue
                     
                 all_deps_satisfied = True
                 for parent_id in dep_task.dependencies:
-                    parent_task = self.task_repository.get_task_by_id(parent_id)
+                    parent_task = self.task_repository.get_by_id(parent_id)
                     if not parent_task or parent_task.status != TaskStatus.DONE:
                         all_deps_satisfied = False
                         break
@@ -371,7 +371,7 @@ class SchedulerService:
 
     def update_confl_page(self):
         """Update Confluence page with task results."""
-        results = self.task_result_repo.get_all_results()
+        results = self.task_result_repo.get_all()
         if not results:
             logging.info("AggregatorJob: no new results to update.")
             return
@@ -406,7 +406,7 @@ class SchedulerService:
 
     def _retry_task(self, task_id: int):
         """Handle task retry by adding it back to the queue."""
-        task = self.task_repository.get_task_by_id(task_id)
+        task = self.task_repository.get_by_id(task_id)
         if not task:
             logging.warning(f"Retry task {task_id} not found")
             return
