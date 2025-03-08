@@ -2,7 +2,7 @@
 import requests
 
 from scheduler.models import TaskStatus, TaskType
-from .repository import TaskRepository
+from scheduler.repositories.task_repository import TaskRepository
 
 class ExternalTaskFetcher:
     """
@@ -53,5 +53,5 @@ class ExternalTaskFetcher:
                 "status": TaskStatus.PENDING
             }
             # 直接调用 in-memory repository 的 add_task
-            self.task_repository.add(task_data)
+            self.task_repository.add_from_dict(task_data)
 

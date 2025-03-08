@@ -116,7 +116,7 @@ class TaskExecutor:
                 "timestamp": time.time(),
                 "execution_details": result
             }
-            self.task_result_repo.save_task_result(result_item)
+            self.task_result_repo.add(result_item)
             logging.info(f"execute_task({task_id}) done, result saved.")
 
             # [新增] 使用外部注入类对结果进行后续处理（发送到 Mattermost 等）

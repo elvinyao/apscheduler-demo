@@ -13,7 +13,6 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 
 from scheduler.models import TaskStatus, TaskType, TaskPriority, Task, RetryPolicy
-from scheduler.task_result_repo import ConfluenceUpdater, TaskResultRepository
 
 from .fetch_service import ExternalTaskFetcher
 from typing import Dict, Set, Any, Optional
