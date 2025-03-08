@@ -180,3 +180,5 @@ logs/
 repomix-output.txt
 
 task_storage/
+
+*.md
