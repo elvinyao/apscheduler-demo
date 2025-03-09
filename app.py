@@ -6,17 +6,17 @@ import uvicorn
 import logging
 
 # New imports
-from core.di_container import DIContainer
-from core.exceptions import BaseAppException
-from scheduler.config import load_config, setup_logging
-from scheduler.executor import TaskExecutor
-from scheduler.schemas import TaskListResponse
-from scheduler.scheduler_service import SchedulerService
-from scheduler.models import TaskStatus, TaskType
+from application.di_container import DIContainer
+from domain.exceptions import BaseAppException
+from infrastructure.config.config import load_config, setup_logging
+from application.use_cases.executor import TaskExecutor
+from interface_adapters.api.schemas import TaskListResponse
+from application.schedulers.scheduler_service import SchedulerService
+from domain.entities.models import TaskStatus, TaskType
 
 def create_app() -> FastAPI:
     # 1) Load global config
-    config = load_config()  # Default from config.yaml
+    config = load_config("./config.yaml")  # Default from config.yaml
     # 2) Set up logging
     setup_logging(config.get("log", {}))
 

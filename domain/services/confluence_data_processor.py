@@ -1,6 +1,6 @@
 import logging
 import time
-from integration.confluence_service import ConfluenceService
+from integration.external_clients.confluence_service import ConfluenceService
 
 class ConfluenceDataProcessor:
     """

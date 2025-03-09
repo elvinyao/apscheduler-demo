@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from uuid import UUID
-from scheduler.models import Task, TaskStatus, TaskType, TaskPriority
+from domain.entities.models import Task, TaskStatus, TaskType, TaskPriority
 
 class TaskPersistenceManager:
     """Handles persistence of tasks to allow recovery after application restart."""

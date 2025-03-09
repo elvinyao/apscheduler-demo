@@ -6,9 +6,9 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from copy import deepcopy
 
-from core.exceptions import EntityNotFoundError
-from core.repositories import BaseRepository
-from scheduler.models import Task, TaskStatus
+from domain.exceptions import EntityNotFoundError
+from domain.entities.repositories import BaseRepository
+from domain.entities.models import Task, TaskStatus
 
 class TaskRepository(BaseRepository[Task]):
     """

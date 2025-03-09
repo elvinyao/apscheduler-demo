@@ -8,10 +8,10 @@ import time
 import concurrent.futures
 from datetime import datetime
 
-from domain.jira_data_processor import JiraDataProcessor
-from domain.mattermost_data_processor import MattermostDataProcessor
-from domain.confluence_data_processor import ConfluenceDataProcessor
-from scheduler.models import TaskStatus, TaskType
+from domain.services.jira_data_processor import JiraDataProcessor
+from domain.services.mattermost_data_processor import MattermostDataProcessor
+from domain.services.confluence_data_processor import ConfluenceDataProcessor
+from domain.entities.models import TaskStatus, TaskType
 
 class TaskExecutor:
     """

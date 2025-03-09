@@ -1,18 +1,18 @@
 # Updated core/di_container.py
 from typing import Dict, Any
-from domain.result_reporter import ResultReporter
-from integration.confluence_service import ConfluenceService
-from integration.jira_service import JiraService
-from domain.confluence_data_processor import ConfluenceDataProcessor
-from domain.jira_data_processor import JiraDataProcessor
-from domain.mattermost_data_processor import MattermostDataProcessor
-from core.error_handler import error_handler
+from domain.services.result_reporter import ResultReporter
+from integration.external_clients.confluence_service import ConfluenceService
+from integration.external_clients.jira_service import JiraService
+from domain.services.confluence_data_processor import ConfluenceDataProcessor
+from domain.services.jira_data_processor import JiraDataProcessor
+from domain.services.mattermost_data_processor import MattermostDataProcessor
+from application.error_handler import error_handler
 
 # Import new repositories
-from scheduler.repositories.task_repository import TaskRepository
-from scheduler.repositories.task_result_repository import TaskResultRepository
-from scheduler.repositories.confluence_repository import ConfluenceRepository
-from scheduler.persistence import TaskPersistenceManager
+from infrastructure.repositories.task_repository import TaskRepository
+from infrastructure.repositories.task_result_repository import TaskResultRepository
+from infrastructure.repositories.confluence_repository import ConfluenceRepository
+from infrastructure.persistence.persistence import TaskPersistenceManager
 
 class DIContainer:
     """Dependency Injection container to manage service initialization."""

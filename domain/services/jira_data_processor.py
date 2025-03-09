@@ -3,7 +3,7 @@ import os
 import time
 
 import pandas as pd
-from integration.jira_service import JiraService
+from integration.external_clients.jira_service import JiraService
 
 class JiraDataProcessor:
     """

@@ -6,8 +6,8 @@ from typing import List, Optional, Dict, Any, TypeVar, Generic
 from copy import deepcopy
 from uuid import UUID
 
-from core.repositories import BaseRepository
-from core.exceptions import EntityNotFoundError
+from domain.entities.repositories import BaseRepository
+from domain.exceptions import EntityNotFoundError
 
 # Define a type for task results (using dict for flexibility)
 TaskResult = Dict[str, Any]

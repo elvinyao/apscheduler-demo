@@ -6,7 +6,7 @@ import sys
 import traceback
 from typing import Dict, Any, Optional, Callable, Type
 
-from core.exceptions import BaseAppException, IntegrationException, DomainException, RepositoryException, SchedulerException
+from domain.exceptions import BaseAppException, IntegrationException, DomainException, RepositoryException, SchedulerException
 
 class ErrorHandler:
     """

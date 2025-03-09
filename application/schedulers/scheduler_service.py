@@ -12,9 +12,9 @@ from apscheduler.executors.pool import ThreadPoolExecutor as APSThreadPoolExecut
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.date import DateTrigger
 
-from scheduler.models import TaskStatus, TaskType, TaskPriority, Task, RetryPolicy
+from domain.entities.models import TaskStatus, TaskType, TaskPriority, Task, RetryPolicy
 
-from .fetch_service import ExternalTaskFetcher
+from ..use_cases.fetch_service import ExternalTaskFetcher
 from typing import Dict, Set, Any, Optional
 
 class SchedulerService:

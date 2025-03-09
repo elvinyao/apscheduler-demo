@@ -5,7 +5,7 @@ import logging
 import time
 from typing import List, Dict, Any
 
-from core.exceptions import IntegrationException, ApiResponseError
+from domain.exceptions import IntegrationException, ApiResponseError
 
 class ConfluenceRepository:
     """
