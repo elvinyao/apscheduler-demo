@@ -7,6 +7,7 @@ from domain.services.confluence_data_processor import ConfluenceDataProcessor
 from domain.services.jira_data_processor import JiraDataProcessor
 from domain.services.mattermost_data_processor import MattermostDataProcessor
 from application.error_handler import error_handler
+from application.services.result_reporting_service import ResultReportingService
 
 # Import new repositories
 from infrastructure.repositories.task_repository import TaskRepository
@@ -73,6 +74,19 @@ class DIContainer:
     def get_error_handler(self):
         """Get the global error handler."""
         return error_handler
+    
+    def get_result_reporting_service(self) -> ResultReportingService:
+        """Get or create the result reporting service."""
+        if 'result_reporting_service' not in self._services:
+            reporting_config = self.config.get('reporting', {})
+            report_interval = reporting_config.get('interval', 30)
+            
+            self._services['result_reporting_service'] = ResultReportingService(
+                task_result_repo=self.get_task_result_repository(),
+                confluence_updater=self.get_confluence_repository(),
+                report_interval=report_interval
+            )
+        return self._services['result_reporting_service']
     
     # Repositories
     

@@ -15,6 +15,7 @@ from .managers.retry_manager import RetryManager
 from .managers.timeout_manager import TimeoutManager
 from .managers.scheduled_task_manager import ScheduledTaskManager
 from ..use_cases.fetch_service import ExternalTaskFetcher
+from ..services.result_reporting_service import ResultReportingService
 
 class SchedulerService:
     """
@@ -33,7 +34,6 @@ class SchedulerService:
         self.task_repository = task_repository
         self.task_executor = task_executor
         self.task_result_repo = task_result_repo
-        self.confluence_updater = confluence_updater
         self.fetcher = ExternalTaskFetcher(task_repository)
 
         self.poll_interval = poll_interval
@@ -66,6 +66,13 @@ class SchedulerService:
         self.timeout_manager = TimeoutManager()
         self.scheduled_task_manager = ScheduledTaskManager(self.scheduler, task_repository)
         
+        # Initialize result reporting service
+        self.result_reporting_service = ResultReportingService(
+            task_result_repo=task_result_repo,
+            confluence_updater=confluence_updater,
+            report_interval=poll_interval
+        )
+        
         # Tracking futures for task execution
         self.futures = {}
 
@@ -83,17 +90,8 @@ class SchedulerService:
             id='poll_db_job',
             replace_existing=True
         )
-        
-        # 2) Update Confluence page
-        self.scheduler.add_job(
-            func=self.update_confl_page,
-            trigger='interval',
-            seconds=self.poll_interval,
-            id='update_confl_job',
-            replace_existing=True
-        )
 
-        # 3) Process task queue
+        # 2) Process task queue
         self.scheduler.add_job(
             func=self.process_task_queue,
             trigger='interval',
@@ -102,27 +100,30 @@ class SchedulerService:
             replace_existing=True
         )
 
-        # 4) Read data task
+        # 3) Read data task
         self.scheduler.add_job(
             func=self.task_executor.read_data,
             trigger=CronTrigger.from_crontab('* * * * *'),
             id='read_data_cron'
         )
 
-        # 5) Fetch tasks from Confluence
+        # 4) Fetch tasks from Confluence
         self.scheduler.add_job(
             func=self.fetcher.fetch_from_confluence,
             trigger=CronTrigger.from_crontab('* * * * *'),
             id='fetch_confluence_job'
         )
         
-        # 6) Check and process retries
+        # 5) Check and process retries
         self.scheduler.add_job(
             func=self.retry_manager.process_retries,
             trigger='interval',
             seconds=30,  # Check for retries every 30 seconds
             id='process_retries_job'
         )
+        
+        # 6) Start the result reporting service with our scheduler
+        self.result_reporting_service.start(scheduler=self.scheduler)
 
         self.scheduler.start()
         logging.info("Scheduler started.")
@@ -269,18 +270,6 @@ class SchedulerService:
         self.task_repository.update_task_status(task_id, TaskStatus.QUEUED)
         logging.info(f"Scheduled task {task_id} triggered and added to queue")
 
-    def update_confl_page(self):
-        """Update Confluence page with task results."""
-        results = self.task_result_repo.get_all()
-        if not results:
-            logging.info("AggregatorJob: no new results to update.")
-            return
-
-        logging.info("AggregatorJob: found %d results, updating Confluence...", len(results))
-        self.confluence_updater.update_confluence(results)
-        self.task_result_repo.clear_results()
-        logging.info("AggregatorJob: done updating Confluence and clearing results.")
-
     def _retry_task(self, task_id):
         """Handle task retry by adding it back to the queue."""
         task = self.task_repository.get_by_id(task_id)
@@ -306,6 +295,9 @@ class SchedulerService:
         
         # Cancel all timeout timers
         self.timeout_manager.shutdown()
+        
+        # Shutdown result reporting service
+        self.result_reporting_service.shutdown()
         
         # Shutdown thread pool and scheduler
         self.executor.shutdown(wait=True)

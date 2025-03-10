@@ -12,6 +12,7 @@ from infrastructure.config.config import load_config, setup_logging
 from application.use_cases.executor import TaskExecutor
 from interface_adapters.api.schemas import TaskListResponse
 from application.schedulers.scheduler_service import SchedulerService
+from application.services.result_reporting_service import ResultReportingService
 from domain.entities.models import TaskStatus, TaskType
 
 def create_app() -> FastAPI:
@@ -67,6 +68,9 @@ def create_app() -> FastAPI:
     sched_conf = config.get("scheduler", {})
     logging.info("Scheduler config loaded: %s", sched_conf)
     
+    # Get result reporting service from DI container
+    result_reporting_service = di_container.get_result_reporting_service()
+    
     scheduler_service = SchedulerService(
         task_repository=task_repo,
         task_executor=task_executor,
@@ -83,6 +87,7 @@ def create_app() -> FastAPI:
         # task_repo.seed_demo_data()  # optional
         # logging.info("Seeding demo data and starting scheduler.")
         scheduler_service.start()
+        # No need to start the result_reporting_service separately as it's now handled by the scheduler service
 
     @app.on_event("shutdown")
     async def on_shutdown():
