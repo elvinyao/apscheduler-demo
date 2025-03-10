@@ -4,14 +4,20 @@ import logging
 from typing import Callable, Dict
 from uuid import UUID
 from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.date import DateTrigger
 
 from domain.entities.models import Task, TaskStatus, RetryPolicy
 
 class RetryManager:
-    """Manages task retry policies and scheduling."""
+    """
+    Manages the retry mechanism for failed tasks, handling retry policy,
+    scheduling retries, and tracking retry attempts.
+    """
     
-    def __init__(self, task_repository):
+    def __init__(self, task_repository, scheduler: BackgroundScheduler):
         self.task_repository = task_repository
+        self.scheduler = scheduler
         self.retry_callbacks: Dict[UUID, Callable] = {}  # Callbacks for retry scheduling
     
     def register_retry_callback(self, task_id: UUID, callback: Callable) -> None:
@@ -25,13 +31,17 @@ class RetryManager:
             
         return (task.retry_policy.current_retries < task.retry_policy.max_retries)
     
-    def schedule_retry(self, task: Task) -> datetime:
+    def schedule_retry(self, task: Task, on_retry_callback):
         """
-        Schedule a retry for the task.
-        Returns the next retry time.
+        Schedule a retry for the failed task based on its retry policy.
+        
+        Args:
+            task: The task to retry
+            on_retry_callback: Callback function to execute when a retry is triggered
         """
         if not task.retry_policy:
-            raise ValueError(f"Task {task.id} has no retry policy")
+            logging.info(f"Task {task.id} has no retry policy, not scheduling retry")
+            return
             
         task.increment_retry_counter()
         next_retry_time = task.get_next_retry_time()
@@ -39,14 +49,18 @@ class RetryManager:
         # Update task status to RETRY
         self.task_repository.update_task_status(task.id, TaskStatus.RETRY)
         
-        # Call the registered callback if exists
-        if task.id in self.retry_callbacks:
-            self.retry_callbacks[task.id](task.id, next_retry_time)
+        # Schedule the retry with a date trigger
+        retry_job_id = f"retry_task_{task.id}_{task.retry_policy.current_retries}"
+        
+        self.scheduler.add_job(
+            func=on_retry_callback,
+            trigger=DateTrigger(run_date=next_retry_time),
+            args=[task.id],
+            id=retry_job_id
+        )
         
         logging.info(f"Scheduled retry {task.retry_policy.current_retries}/{task.retry_policy.max_retries} "
                     f"for task {task.id} at {next_retry_time}")
-        
-        return next_retry_time
     
     def reset_retry_counter(self, task_id: UUID) -> None:
         """Reset retry counter for a task."""
@@ -59,3 +73,15 @@ class RetryManager:
         """Clean up retry resources for a task."""
         if task_id in self.retry_callbacks:
             del self.retry_callbacks[task_id]
+    
+    def process_retries(self):
+        """
+        Process tasks that are due for retry.
+        This method can be used for additional retry management logic.
+        """
+        # This is a placeholder that could be expanded with more complex retry logic
+        # such as checking for stuck retries or implementing escalation policies
+        retry_tasks = self.task_repository.get_tasks_by_status(TaskStatus.RETRY)
+        if retry_tasks:
+            logging.info(f"Found {len(retry_tasks)} tasks in RETRY status")
+            # Additional logic could be added here
