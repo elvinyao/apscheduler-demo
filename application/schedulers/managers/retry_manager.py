@@ -81,7 +81,7 @@ class RetryManager:
         """
         # This is a placeholder that could be expanded with more complex retry logic
         # such as checking for stuck retries or implementing escalation policies
-        retry_tasks = self.task_repository.get_tasks_by_status(TaskStatus.RETRY)
+        retry_tasks = self.task_repository.get_by_status(TaskStatus.RETRY)
         if retry_tasks:
             logging.info(f"Found {len(retry_tasks)} tasks in RETRY status")
             # Additional logic could be added here

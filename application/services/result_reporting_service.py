@@ -56,8 +56,8 @@ class ResultReportingService:
             return
 
         logging.info("ResultReportingService: found %d results, updating Confluence...", len(results))
-        self.confluence_updater.update_confluence(results)
-        self.task_result_repo.clear_results()
+        self.confluence_updater.update_with_results(results)
+        self.task_result_repo.clear_all()
         logging.info("ResultReportingService: done updating Confluence and clearing results.")
     
     def report_single_result(self, task_id, result):
