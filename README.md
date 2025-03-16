@@ -36,6 +36,93 @@ APScheduler任务调度管理系统是一个基于FastAPI和Advanced Python Sche
    - 配置管理、日志服务
    - 持久化实现
 
+### 系统架构图
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        表示层 (Presentation)                      │
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   任务管理API     │    │   状态查询API     │    │  结果查看API  │ │
+│  └────────┬────────┘    └────────┬────────┘    └───────┬──────┘ │
+└───────────┼─────────────────────┼─────────────────────┼─────────┘
+            │                     │                     │
+┌───────────┼─────────────────────┼─────────────────────┼─────────┐
+│                         应用层 (Application)                      │
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │  调度服务        │    │  执行服务        │    │  报告服务     │ │
+│  │SchedulerService │    │ TaskExecutor    │    │ReportService │ │
+│  └────────┬────────┘    └────────┬────────┘    └───────┬──────┘ │
+│           │                      │                     │        │
+│  ┌────────┴──────────────────────┴─────────────────────┴──────┐ │
+│  │                      依赖注入容器                          │ │
+│  │                    DIContainer                           │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+┌────────────────────────────┼────────────────────────────────────┐
+│                         领域层 (Domain)                          │
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   任务实体       │    │   领域服务       │    │  领域事件    │ │
+│  │   Task          │    │  JiraService    │    │TaskCreated   │ │
+│  │   TaskResult    │    │ConfluenceService│    │TaskCompleted │ │
+│  └────────┬────────┘    └────────┬────────┘    └───────┬──────┘ │
+└───────────┼─────────────────────┼─────────────────────┼─────────┘
+            │                     │                     │
+┌───────────┼─────────────────────┼─────────────────────┼─────────┐
+│                      基础设施层 (Infrastructure)                  │
+│                                                                 │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────┐ │
+│  │   任务仓储       │    │   外部系统集成   │    │  配置管理    │ │
+│  │ TaskRepository  │    │   JiraClient    │    │ConfigManager │ │
+│  │ResultRepository │    │ConfluenceClient │    │ LogService   │ │
+│  └─────────────────┘    └─────────────────┘    └──────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 业务架构图
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                           外部触发                                 │
+│                                                                   │
+│    ┌─────────┐         ┌─────────┐         ┌─────────────┐        │
+│    │ API请求  │         │定时触发  │         │手动创建任务 │        │
+│    └────┬────┘         └────┬────┘         └──────┬──────┘        │
+└─────────┼───────────────────┼───────────────────┬───────────────────┘
+          │                   │                   │
+          ▼                   ▼                   ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                           任务生命周期                             │
+│                                                                   │
+│    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐       │
+│    │ 创建任务 │───▶│任务排队 │───▶│任务执行 │───▶│结果处理 │       │
+│    └─────────┘    └────┬────┘    └────┬────┘    └────┬────┘       │
+│                       │               │               │           │
+│                       │               │               │           │
+│                       ▼               ▼               ▼           │
+│                  ┌─────────┐     ┌─────────┐     ┌─────────┐      │
+│                  │优先级排序│     │任务超时 │     │结果汇总 │      │
+│                  └─────────┘     └────┬────┘     └────┬────┘      │
+│                                      │               │           │
+│                                      ▼               ▼           │
+│                                 ┌─────────┐     ┌─────────┐      │
+│                                 │重试机制 │     │报告生成 │      │
+│                                 └─────────┘     └────┬────┘      │
+└───────────────────────────────────────────────────────┼────────────┘
+                                                        │
+                                                        ▼
+┌───────────────────────────────────────────────────────────────────┐
+│                           外部系统集成                             │
+│                                                                   │
+│    ┌─────────────┐         ┌─────────────┐      ┌─────────────┐   │
+│    │Jira数据处理 │         │Confluence更新│      │其他系统集成 │   │
+│    └─────────────┘         └─────────────┘      └─────────────┘   │
+└───────────────────────────────────────────────────────────────────┘
+```
+
 ### 核心组件
 
 - **任务调度器**（SchedulerService）：系统核心，协调各管理器完成任务调度
@@ -365,24 +452,166 @@ project_task = {
 }
 ```
 
-## 7. 扩展与定制
+## 7. 如何开发和使用本框架
 
-### 7.1 添加新的任务处理器
+### 7.1 开发新的任务类型
 
-1. 在domain/services/下创建新的领域服务
-2. 在application/use_cases/executor.py中注册新的处理器
-3. 参考现有标签(如JIRA_TASK_EXP)添加新的任务标签常量
+1. **定义任务标签常量**
+   
+   在`domain/entities/models.py`中添加新的任务标签常量：
+   ```python
+   # 示例：添加一个处理数据同步的任务标签
+   class TaskTags:
+       JIRA_TASK_EXP = "JIRA_TASK_EXP"
+       DATA_SYNC_TASK = "DATA_SYNC_TASK"  # 新添加的任务标签
+   ```
 
-### 7.2 集成新的外部系统
+2. **创建领域服务**
+   
+   在`domain/services/`目录下创建新的领域服务类：
+   ```python
+   # 示例：data_sync_service.py
+   from domain.entities.models import TaskResult
+   
+   class DataSyncService:
+       def __init__(self, config):
+           self.config = config
+       
+       def sync_data(self, parameters):
+           # 实现数据同步逻辑
+           # ...
+           return TaskResult(
+               success=True,
+               result_data={"synced_records": 100}
+           )
+   ```
 
-1. 在infrastructure/integration/下创建新的服务连接器
-2. 在domain/services/下创建对应的领域服务
-3. 在application/di_container.py中注册新的服务
+3. **注册到依赖注入容器**
+   
+   在`application/di_container.py`中添加服务注册：
+   ```python
+   def get_data_sync_service(self):
+       if not hasattr(self, '_data_sync_service'):
+           self._data_sync_service = DataSyncService(self.config)
+       return self._data_sync_service
+   ```
 
-### 7.3 自定义结果报告
+4. **添加任务执行器处理逻辑**
+   
+   在`application/use_cases/executor.py`中的`TaskExecutor`类中添加处理方法：
+   ```python
+   def _execute_data_sync_task(self, task):
+       data_sync_service = self.di_container.get_data_sync_service()
+       result = data_sync_service.sync_data(task.parameters)
+       return result
+   ```
 
-1. 修改application/services/result_reporting_service.py
-2. 添加新的报告类型和模板
+5. **修改任务执行流程**
+   
+   在`TaskExecutor.execute`方法中添加标签处理分支：
+   ```python
+   def execute(self, task):
+       # ...现有代码...
+       if TaskTags.JIRA_TASK_EXP in task.tags:
+           result = self._execute_jira_task(task)
+       elif TaskTags.DATA_SYNC_TASK in task.tags:  # 添加新的处理分支
+           result = self._execute_data_sync_task(task)
+       else:
+           raise UnsupportedTaskTypeError(f"不支持的任务标签: {task.tags}")
+       # ...现有代码...
+   ```
+
+### 7.2 使用框架创建和执行任务
+
+1. **创建任务配置**
+
+   ```python
+   # 示例：创建数据同步任务
+   data_sync_task = {
+       "name": "每日数据同步任务",
+       "task_type": TaskType.SCHEDULED,
+       "cron_expr": "0 1 * * *",  # 每天凌晨1点执行
+       "tags": ["DATA_SYNC_TASK"],
+       "parameters": {
+           "source_db": "production",
+           "target_db": "analytics",
+           "tables": ["users", "orders", "products"]
+       }
+   }
+   
+   # 使用任务仓库添加任务
+   task_repo.add_from_dict(data_sync_task)
+   ```
+
+2. **通过API创建任务**
+
+   可以扩展API接口，支持通过HTTP请求创建任务：
+   ```python
+   @app.post("/tasks", response_model=TaskResponse)
+   def create_task(task_data: TaskCreate):
+       task = task_repo.add_from_dict(task_data.dict())
+       return TaskResponse(
+           message="任务创建成功",
+           task_id=str(task.id)
+       )
+   ```
+
+3. **查看任务执行状态**
+
+   ```bash
+   # 查看所有任务
+   curl http://localhost:8000/tasks
+   
+   # 查看特定状态任务
+   curl http://localhost:8000/tasks/status/RUNNING
+   
+   # 查看任务执行历史
+   curl http://localhost:8000/task_history
+   ```
+
+### 7.3 扩展框架功能
+
+1. **添加新的外部系统集成**
+
+   1. 在`infrastructure/integration/`下创建新的客户端类
+   2. 在`domain/services/`下创建对应的领域服务
+   3. 在依赖注入容器中注册新服务
+
+2. **扩展结果报告方式**
+
+   1. 在`application/services/result_reporting_service.py`中添加新的报告方法
+   2. 在配置文件中添加对应的报告渠道配置
+
+3. **添加自定义任务状态和生命周期钩子**
+
+   1. 在`domain/entities/models.py`中扩展TaskStatus枚举
+   2. 在任务执行流程中添加状态转换和钩子调用
+
+### 7.4 最佳实践
+
+1. **任务设计原则**
+   
+   - 保持任务功能单一，遵循单一职责原则
+   - 将复杂业务流程拆分为多个小任务，通过依赖关系串联
+   - 合理设置任务优先级和超时策略
+
+2. **错误处理**
+   
+   - 为任务添加适当的重试策略，特别是涉及网络请求的任务
+   - 使用领域异常表达业务规则违反，避免使用通用异常
+   - 在日志中记录足够的上下文信息，便于问题排查
+
+3. **性能优化**
+   
+   - 合理设置并发任务数量，避免资源竞争
+   - 对于资源密集型任务，考虑使用异步执行
+   - 定期清理历史任务数据，避免存储爆炸
+
+4. **安全性考虑**
+   
+   - 敏感配置（如密码、API密钥）应使用环境变量或配置文件替换
+   - 添加API访问认证机制，避免未授权使用
+   - 对任务参数进行校验，防止注入攻击
 
 ## 8. 常见问题与解决方案
 
@@ -458,4 +687,4 @@ project_task = {
 
 ---
 
-*文档更新日期: 2024-03-10*
+*文档更新日期: 2024-03-16*
