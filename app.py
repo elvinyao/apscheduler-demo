@@ -56,10 +56,104 @@ def create_app() -> FastAPI:
             "user": "johndoe"
         }
     }
+    
+    # 添加批量Jira任务示例
+    bulk_jira_task = {
+        "name": "批量创建Jira tickets",
+        "task_type": TaskType.IMMEDIATE,
+        "tags": ["BULK_JIRA_TASK"],
+        "parameters": {
+            "operation_type": "create",
+            "max_workers": 4,  # 最多使用4个线程
+            "tickets_data": [
+                {
+                    "fields": {
+                        "project": {"key": "PROJ"},
+                        "issuetype": {"name": "Task"},
+                        "summary": "示例任务1",
+                        "description": "这是示例任务1的描述",
+                        "priority": {"name": "Medium"}
+                    }
+                },
+                {
+                    "fields": {
+                        "project": {"key": "PROJ"},
+                        "issuetype": {"name": "Task"},
+                        "summary": "示例任务2",
+                        "description": "这是示例任务2的描述",
+                        "priority": {"name": "High"}
+                    }
+                },
+                {
+                    "fields": {
+                        "project": {"key": "PROJ"},
+                        "issuetype": {"name": "Bug"},
+                        "summary": "示例Bug1",
+                        "description": "这是示例Bug1的描述",
+                        "priority": {"name": "High"}
+                    }
+                }
+            ]
+        }
+    }
+    
+    # 添加层级结构的Jira任务示例
+    linked_jira_task = {
+        "name": "创建层级结构Jira tickets",
+        "task_type": TaskType.IMMEDIATE,
+        "tags": ["BULK_JIRA_TASK"],
+        "parameters": {
+            "operation_type": "create",
+            "max_workers": 3,
+            "is_linked": True,  # 指示这是层级结构任务
+            "tickets_data": {
+                "root": {
+                    "fields": {
+                        "project": {"key": "PROJ"},
+                        "issuetype": {"name": "Epic"},
+                        "summary": "根Epic任务",
+                        "description": "这是一个根Epic任务",
+                        "priority": {"name": "High"}
+                    }
+                },
+                "children": [
+                    {
+                        "fields": {
+                            "project": {"key": "PROJ"},
+                            "issuetype": {"name": "Task"},
+                            "summary": "子任务1",
+                            "description": "这是子任务1的描述",
+                            "priority": {"name": "Medium"}
+                        }
+                    },
+                    {
+                        "fields": {
+                            "project": {"key": "PROJ"},
+                            "issuetype": {"name": "Task"},
+                            "summary": "子任务2",
+                            "description": "这是子任务2的描述",
+                            "priority": {"name": "Medium"}
+                        }
+                    },
+                    {
+                        "fields": {
+                            "project": {"key": "PROJ"},
+                            "issuetype": {"name": "Bug"},
+                            "summary": "相关Bug",
+                            "description": "这是相关Bug的描述",
+                            "priority": {"name": "High"}
+                        }
+                    }
+                ]
+            }
+        }
+    }
 
     # Use repository add method
     task_repo.add_from_dict(root_ticket_task)
     task_repo.add_from_dict(project_task)
+    task_repo.add_from_dict(bulk_jira_task)
+    task_repo.add_from_dict(linked_jira_task)
 
     # 5) Create task executor
     task_executor = TaskExecutor(task_repo, result_repo, di_container)

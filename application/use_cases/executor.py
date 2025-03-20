@@ -46,7 +46,7 @@ class TaskExecutor:
 
         logging.info(f"[{datetime.now()}] Executing task: id={task.id}, name={task.name}, type={task.task_type}...")
         try:
-                        # 检查任务标签，处理JIRA_TASK_EXP标签
+            # 检查任务标签，处理JIRA_TASK_EXP标签
             if "JIRA_TASK_EXP" in task.tags:
                 jira_processor = self.di_container.get_jira_data_processor()
                 
@@ -67,6 +67,11 @@ class TaskExecutor:
                 self.task_repository.update_task_status(task_id, TaskStatus.DONE)
                 logging.info(f"Task {task.id} completed successfully.")
                 return result
+                
+            # 处理批量Jira任务
+            elif "BULK_JIRA_TASK" in task.tags:
+                return self.execute_bulk_jira_task(task_id)
+                
             # For this specific task create a thread pool
             with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_task_threads, 
                                                      thread_name_prefix=f"Task{task_id}Worker") as task_executor:
@@ -148,3 +153,93 @@ class TaskExecutor:
         except Exception as e:
             logging.error(f"Confluence processing error: {e}")
             return {"confluence_success": False, "error": str(e)}
+
+    def execute_bulk_jira_task(self, task_id):
+        """
+        执行批量Jira tickets创建或更新的任务
+        
+        :param task_id: 任务ID
+        :return: 包含处理结果的字典
+        """
+        # 标记任务为运行中
+        self.task_repository.update_task_status(task_id, TaskStatus.RUNNING)
+        task = self.task_repository.get_by_id(task_id)
+        
+        if not task:
+            logging.warning(f"Task with id={task_id} not found.")
+            return {"success": False, "error": "Task not found"}
+            
+        logging.info(f"执行批量Jira任务: id={task.id}, name={task.name}")
+        
+        try:
+            # 检查任务是否有BULK_JIRA_TASK标签
+            if "BULK_JIRA_TASK" not in task.tags:
+                error_msg = "任务不包含BULK_JIRA_TASK标签"
+                logging.error(error_msg)
+                self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
+                return {"success": False, "error": error_msg}
+                
+            # 获取任务参数
+            operation_type = task.parameters.get('operation_type', 'create')  # 默认为创建
+            max_workers = task.parameters.get('max_workers', 5)  # 默认为5个线程
+            tickets_data = task.parameters.get('tickets_data', [])
+            is_linked = task.parameters.get('is_linked', False)  # 是否为有层级关系的tickets
+            
+            if not tickets_data:
+                error_msg = "任务参数中缺少tickets_data"
+                logging.error(error_msg)
+                self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
+                return {"success": False, "error": error_msg}
+                
+            # 获取JiraDataProcessor
+            jira_processor = self.di_container.get_jira_data_processor()
+            
+            # 根据tickets是否有层级关系选择合适的处理方法
+            if is_linked:
+                result = jira_processor.process_linked_jira_operations(
+                    tickets_data, operation_type, max_workers
+                )
+            else:
+                result = jira_processor.process_bulk_jira_operations(
+                    tickets_data, operation_type, max_workers
+                )
+                
+            # 检查处理结果
+            if "error" in result and result.get("success") is False:
+                # 任务失败
+                self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
+                logging.error(f"批量Jira任务{task.id}失败: {result['error']}")
+            else:
+                # 任务成功
+                self.task_repository.update_task_status(task_id, TaskStatus.DONE)
+                logging.info(f"批量Jira任务{task.id}完成，成功处理{result.get('success_count', 0)}个tickets")
+                
+            # 保存执行结果
+            result_item = {
+                "task_id": task_id,
+                "result_value": f"bulk_jira_task_{task_id}",
+                "result_status_value": f"{task}",
+                "timestamp": time.time(),
+                "execution_details": result
+            }
+            self.task_result_repo.add(result_item)
+            
+            return result
+            
+        except Exception as e:
+            # 处理异常
+            error_msg = str(e)
+            logging.error(f"执行批量Jira任务{task.id}时发生错误: {error_msg}")
+            self.task_repository.update_task_status(task_id, TaskStatus.FAILED)
+            
+            # 保存执行结果
+            result_item = {
+                "task_id": task_id,
+                "result_value": f"bulk_jira_task_{task_id}_error",
+                "result_status_value": f"{task}",
+                "timestamp": time.time(),
+                "execution_details": {"success": False, "error": error_msg}
+            }
+            self.task_result_repo.add(result_item)
+            
+            return {"success": False, "error": error_msg}
