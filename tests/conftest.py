@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app import create_app
-from domain.entities.models import TaskStatus, TaskType
+from domain.entities.models import TaskStatus, TaskScheduleType
 from application.di_container import DIContainer
 from infrastructure.config.config import load_config
 
@@ -22,7 +22,7 @@ def test_client():
 def sample_task():
     return {
         "name": "Test Task",
-        "task_type": TaskType.IMMEDIATE,
+        "task_type": TaskScheduleType.IMMEDIATE,
         "tags": ["TEST"],
         "parameters": {
             "test_param": "value"
@@ -33,7 +33,7 @@ def sample_task():
 def sample_scheduled_task():
     return {
         "name": "Scheduled Test Task",
-        "task_type": TaskType.SCHEDULED,
+        "task_type": TaskScheduleType.SCHEDULED,
         "cron_expr": "0 0 * * *",
         "tags": ["TEST"],
         "parameters": {

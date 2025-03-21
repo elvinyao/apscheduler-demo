@@ -13,7 +13,7 @@ from application.use_cases.executor import TaskExecutor
 from interface_adapters.api.schemas import TaskListResponse
 from application.schedulers.scheduler_service import SchedulerService
 from application.services.result_reporting_service import ResultReportingService
-from domain.entities.models import TaskStatus, TaskType
+from domain.entities.models import TaskStatus, TaskScheduleType, TaskTags
 
 def create_app() -> FastAPI:
     # 1) Load global config
@@ -34,8 +34,8 @@ def create_app() -> FastAPI:
     # Create tasks using the repository
     root_ticket_task = {
         "name": "JIRA Extraction - Root Ticket",
-        "task_type": TaskType.IMMEDIATE,
-        "tags": ["JIRA_TASK_EXP"],
+        "task_type": TaskScheduleType.IMMEDIATE,
+        "tags": [TaskTags.JIRA_TASK_EXP],
         "parameters": {
             "jira_envs": ["env1.jira.com", "env2.jira.com"],
             "key_type": "root_ticket",
@@ -46,9 +46,9 @@ def create_app() -> FastAPI:
 
     project_task = {
         "name": "JIRA Extraction - Project",
-        "task_type": TaskType.IMMEDIATE,
+        "task_type": TaskScheduleType.IMMEDIATE,
         "cron_expr": "0 0 * * *",  # Every day at midnight
-        "tags": ["JIRA_TASK_EXP"],
+        "tags": [TaskTags.JIRA_TASK_EXP],
         "parameters": {
             "jira_envs": ["env1.jira.com"],
             "key_type": "project",
@@ -60,8 +60,8 @@ def create_app() -> FastAPI:
     # 添加批量Jira任务示例
     bulk_jira_task = {
         "name": "批量创建Jira tickets",
-        "task_type": TaskType.IMMEDIATE,
-        "tags": ["BULK_JIRA_TASK"],
+        "task_type": TaskScheduleType.IMMEDIATE,
+        "tags": [TaskTags.BULK_JIRA_TASK],
         "parameters": {
             "operation_type": "create",
             "max_workers": 4,  # 最多使用4个线程
@@ -100,8 +100,8 @@ def create_app() -> FastAPI:
     # 添加层级结构的Jira任务示例
     linked_jira_task = {
         "name": "创建层级结构Jira tickets",
-        "task_type": TaskType.IMMEDIATE,
-        "tags": ["BULK_JIRA_TASK"],
+        "task_type": TaskScheduleType.IMMEDIATE,
+        "tags": [TaskTags.BULK_JIRA_TASK],
         "parameters": {
             "operation_type": "create",
             "max_workers": 3,

@@ -11,7 +11,7 @@ from datetime import datetime
 from domain.services.jira_data_processor import JiraDataProcessor
 from domain.services.mattermost_data_processor import MattermostDataProcessor
 from domain.services.confluence_data_processor import ConfluenceDataProcessor
-from domain.entities.models import TaskStatus, TaskType
+from domain.entities.models import TaskStatus, TaskScheduleType
 
 class TaskExecutor:
     """
@@ -56,7 +56,7 @@ class TaskExecutor:
                     "key_type": task.parameters.get('key_type'),  # "root_ticket" 或 "project"
                     "key_value": task.parameters.get('key_value'),
                     "user": task.parameters.get('user'),
-                    "is_scheduled": task.task_type == TaskType.SCHEDULED
+                    "is_scheduled": task.task_type == TaskScheduleType.SCHEDULED
                 }
                 
                 # 调用处理方法

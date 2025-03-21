@@ -1,7 +1,7 @@
 # fetch_service.py
 import requests
 
-from domain.entities.models import TaskStatus, TaskType
+from domain.entities.models import TaskStatus, TaskScheduleType
 from infrastructure.repositories.task_repository import TaskRepository
 
 class ExternalTaskFetcher:

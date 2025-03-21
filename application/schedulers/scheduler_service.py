@@ -7,7 +7,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor as APSThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 
-from domain.entities.models import TaskStatus, TaskType, TaskPriority, Task
+from domain.entities.models import TaskStatus, TaskScheduleType, TaskPriority, Task
 
 from .managers.task_queue_manager import TaskQueueManager
 from .managers.dependency_manager import DependencyManager
@@ -147,7 +147,7 @@ class SchedulerService:
                 continue
             
             # Process task depending on its type
-            if task.task_type == TaskType.SCHEDULED and task.cron_expr:
+            if task.task_type == TaskScheduleType.SCHEDULED and task.cron_expr:
                 self.scheduled_task_manager.schedule_task(
                     task.id, 
                     task.cron_expr, 
@@ -155,7 +155,7 @@ class SchedulerService:
                     self._scheduled_task_wrapper
                 )
             
-            elif task.task_type == TaskType.IMMEDIATE:
+            elif task.task_type == TaskScheduleType.IMMEDIATE:
                 # Add to priority queue
                 self.task_queue_manager.add_task(task.id, task.priority)
                 self.task_repository.update_task_status(task.id, TaskStatus.QUEUED)
@@ -249,7 +249,7 @@ class SchedulerService:
                 continue
                 
             # Process the task based on its type
-            if dep_task.task_type == TaskType.SCHEDULED and dep_task.cron_expr:
+            if dep_task.task_type == TaskScheduleType.SCHEDULED and dep_task.cron_expr:
                 self.scheduled_task_manager.schedule_task(
                     dep_task.id,
                     dep_task.cron_expr,

@@ -1,15 +1,15 @@
-# 在 models.py 中添加新的常量
-JIRA_TASK_EXP = "JIRA_TASK_EXP"  # 添加在文件顶部或适当位置
-
-# 在 Task 类中确保 tags 字段可以包含这个新标签
-
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from uuid import UUID, uuid4
 
-class TaskType(str, Enum):
+# Task tags is been used to identify the task type
+class TaskTags:
+    JIRA_TASK_EXP = "JIRA_TASK_EXP"  # task export service type
+    JIRA_TASK_IMPORT = "JIRA_TASK_IMPORT"  # task import service type
+    BULK_JIRA_TASK = "BULK_JIRA_TASK"  # bulk jira task
+class TaskScheduleType(str, Enum):
     SCHEDULED = 'SCHEDULED'
     IMMEDIATE = 'IMMEDIATE'
 
@@ -37,7 +37,7 @@ class RetryPolicy(BaseModel):
 class Task(BaseModel):
     id: UUID = Field(default_factory=uuid4)  # Changed from int to UUID with auto-generation
     name: str
-    task_type: TaskType
+    task_type: TaskScheduleType
     cron_expr: Optional[str] = None
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = Field(default_factory=datetime.now)

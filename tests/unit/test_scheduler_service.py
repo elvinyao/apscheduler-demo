@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, patch
 from application.schedulers.scheduler_service import SchedulerService
-from domain.entities.models import TaskStatus, TaskType
+from domain.entities.models import TaskStatus, TaskScheduleType
 
 @pytest.fixture
 def scheduler_service(di_container):
