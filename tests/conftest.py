@@ -4,14 +4,16 @@ from app import create_app
 from domain.entities.models import TaskStatus, TaskScheduleType
 from application.di_container import DIContainer
 from infrastructure.config.config import load_config
+from settings import get_settings
 
 @pytest.fixture
 def test_config():
     return load_config("./config.yaml")
 
 @pytest.fixture
-def di_container(test_config):
-    return DIContainer(test_config)
+def di_container():
+    """Provide DIContainer built with global Settings."""
+    return DIContainer(get_settings())
 
 @pytest.fixture
 def test_client():
@@ -39,4 +41,4 @@ def sample_scheduled_task():
         "parameters": {
             "test_param": "value"
         }
-    } 
+    }

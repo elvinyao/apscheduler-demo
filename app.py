@@ -9,6 +9,7 @@ from interface_adapters.api.schemas import TaskListResponse
 from application.schedulers.scheduler_service import SchedulerService
 from domain.entities.models import TaskStatus, TaskScheduleType, TaskTags
 from settings import get_settings
+from examples.demo_tasks import get_demo_tasks
 
 
 '''
@@ -24,136 +25,16 @@ def create_app() -> FastAPI:
     app = FastAPI()
 
     # 3) Create dependency injection container
-    di_container = DIContainer(config)
+    di_container = DIContainer(s)
 
     # 4) Get repositories from DI container
     task_repo = di_container.get_task_repository()
     result_repo = di_container.get_task_result_repository()
     confluence_repo = di_container.get_confluence_repository()
 
-    # Create tasks using the repository
-    root_ticket_task = {
-        "name": "JIRA Extraction - Root Ticket",
-        "task_type": TaskScheduleType.IMMEDIATE,
-        "tags": [TaskTags.JIRA_TASK_EXP],
-        "parameters": {
-            "jira_envs": ["env1.jira.com", "env2.jira.com"],
-            "key_type": "root_ticket",
-            "key_value": "PROJ-123",
-            "user": "johndoe"
-        }
-    }
-
-    project_task = {
-        "name": "JIRA Extraction - Project",
-        "task_type": TaskScheduleType.IMMEDIATE,
-        "cron_expr": "0 0 * * *",  # Every day at midnight
-        "tags": [TaskTags.JIRA_TASK_EXP],
-        "parameters": {
-            "jira_envs": ["env1.jira.com"],
-            "key_type": "project",
-            "key_value": "PROJ",
-            "user": "johndoe"
-        }
-    }
-
-    # 添加批量Jira任务示例
-    bulk_jira_task = {
-        "name": "批量创建Jira tickets",
-        "task_type": TaskScheduleType.IMMEDIATE,
-        "tags": [TaskTags.BULK_JIRA_TASK],
-        "parameters": {
-            "operation_type": "create",
-            "max_workers": 4,  # 最多使用4个线程
-            "tickets_data": [
-                {
-                    "fields": {
-                        "project": {"key": "PROJ"},
-                        "issuetype": {"name": "Task"},
-                        "summary": "示例任务1",
-                        "description": "这是示例任务1的描述",
-                        "priority": {"name": "Medium"}
-                    }
-                },
-                {
-                    "fields": {
-                        "project": {"key": "PROJ"},
-                        "issuetype": {"name": "Task"},
-                        "summary": "示例任务2",
-                        "description": "这是示例任务2的描述",
-                        "priority": {"name": "High"}
-                    }
-                },
-                {
-                    "fields": {
-                        "project": {"key": "PROJ"},
-                        "issuetype": {"name": "Bug"},
-                        "summary": "示例Bug1",
-                        "description": "这是示例Bug1的描述",
-                        "priority": {"name": "High"}
-                    }
-                }
-            ]
-        }
-    }
-
-    # 添加层级结构的Jira任务示例
-    linked_jira_task = {
-        "name": "创建层级结构Jira tickets",
-        "task_type": TaskScheduleType.IMMEDIATE,
-        "tags": [TaskTags.BULK_JIRA_TASK],
-        "parameters": {
-            "operation_type": "create",
-            "max_workers": 3,
-            "is_linked": True,  # 指示这是层级结构任务
-            "tickets_data": {
-                "root": {
-                    "fields": {
-                        "project": {"key": "PROJ"},
-                        "issuetype": {"name": "Epic"},
-                        "summary": "根Epic任务",
-                        "description": "这是一个根Epic任务",
-                        "priority": {"name": "High"}
-                    }
-                },
-                "children": [
-                    {
-                        "fields": {
-                            "project": {"key": "PROJ"},
-                            "issuetype": {"name": "Task"},
-                            "summary": "子任务1",
-                            "description": "这是子任务1的描述",
-                            "priority": {"name": "Medium"}
-                        }
-                    },
-                    {
-                        "fields": {
-                            "project": {"key": "PROJ"},
-                            "issuetype": {"name": "Task"},
-                            "summary": "子任务2",
-                            "description": "这是子任务2的描述",
-                            "priority": {"name": "Medium"}
-                        }
-                    },
-                    {
-                        "fields": {
-                            "project": {"key": "PROJ"},
-                            "issuetype": {"name": "Bug"},
-                            "summary": "相关Bug",
-                            "description": "这是相关Bug的描述",
-                            "priority": {"name": "High"}
-                        }
-                    }
-                ]
-            }
-        }
-    }
-
-    # Use repository add method
-    task_repo.add_from_dict(root_ticket_task)
-    task_repo.add_from_dict(project_task)
-    task_repo.add_from_dict(bulk_jira_task)
-    task_repo.add_from_dict(linked_jira_task)
+    # Use repository add demo data
+    for task in get_demo_tasks():
+        task_repo.add_from_dict(task)
 
     # 5) Create task executor
     task_executor = TaskExecutor(task_repo, result_repo, di_container)

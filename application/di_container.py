@@ -1,5 +1,5 @@
-# Updated core/di_container.py
-from typing import Dict, Any
+from typing import Any
+from settings import Settings
 from domain.services.result_reporter import ResultReporter
 from integration.external_clients.confluence_service import ConfluenceService
 from integration.external_clients.jira_service import JiraService
@@ -18,8 +18,8 @@ from infrastructure.persistence.persistence import TaskPersistenceManager
 class DIContainer:
     """Dependency Injection container to manage service initialization."""
     
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
+    def __init__(self, settings: Settings):
+        self.settings = settings
         self._services = {}
         self._repositories = {}
     
@@ -27,7 +27,7 @@ class DIContainer:
     
     def get_confluence_service(self) -> ConfluenceService:
         if 'confluence_service' not in self._services:
-            conf_config = self.config.get('confluence', {})
+            conf_config = self.settings.config_file.get('confluence', {})
             self._services['confluence_service'] = ConfluenceService(
                 url=conf_config.get('url'),
                 username=conf_config.get('username'),
@@ -37,7 +37,7 @@ class DIContainer:
     
     def get_jira_service(self) -> JiraService:
         if 'jira_service' not in self._services:
-            jira_config = self.config.get('jira', {})
+            jira_config = self.settings.config_file.get('jira', {})
             self._services['jira_service'] = JiraService(
                 url=jira_config.get('url'),
                 username=jira_config.get('username'),
@@ -78,7 +78,7 @@ class DIContainer:
     def get_result_reporting_service(self) -> ResultReportingService:
         """Get or create the result reporting service."""
         if 'result_reporting_service' not in self._services:
-            reporting_config = self.config.get('reporting', {})
+            reporting_config = self.settings.config_file.get('reporting', {})
             report_interval = reporting_config.get('interval', 30)
             
             self._services['result_reporting_service'] = ResultReportingService(
@@ -93,7 +93,7 @@ class DIContainer:
     def get_persistence_manager(self) -> TaskPersistenceManager:
         """Get or create the task persistence manager."""
         if 'persistence_manager' not in self._repositories:
-            storage_path = self.config.get('storage', {}).get('path', 'task_storage')
+            storage_path = self.settings.config_file.get('storage', {}).get('path', 'task_storage')
             self._repositories['persistence_manager'] = TaskPersistenceManager(storage_path=storage_path)
         return self._repositories['persistence_manager']
     
