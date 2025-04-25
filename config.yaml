@@ -1,0 +1,37 @@
+# config.yaml
+confluence:
+  url: "https://confluence.example.com"
+  username: "confluence_user"
+  password: "confluence_password"
+  main_page_id: "123456"
+  task_result_page_id: "789012"
+
+jira:
+  url: "https://jira.example.com"
+  username: "jira_user"
+  password: "jira_password"
+
+scheduler:
+  poll_interval: 30 # scheduler poll interval
+  concurrency: 5 # APScheduler thread pool size
+  coalesce: false # coalesce job execution
+  max_instances: 5 # max job instances
+
+log:
+  level: INFO # log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  filename: logs/app.log # log file output path
+  max_bytes: 10485760 # 10MB
+  backup_count: 5 # max history files
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+storage:
+  path: "task_storage"
+
+reporting:
+  interval: 30 # reporting interval
+  report_types:
+    - "confluence"
+    - "mattermost" # Future reporting channels
+  confluence:
+    page_id: "789012"
+    template: "task_results_template"
